@@ -40,4 +40,17 @@ class SyncHelper
 
         return get_option(SettingsService::SETTING_API_TOKEN, null);
     }
+
+    public static function getSiteFromToken(string $token): ?string
+    {
+        $site = null;
+
+        $explode = explode('.', $token);
+        if (array_key_exists(0, $explode)) {
+            $encodedSite = $explode[0];
+            $site = base64_decode($encodedSite) ?? null;
+        }
+
+        return $site;
+    }
 }
