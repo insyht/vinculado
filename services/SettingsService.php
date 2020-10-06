@@ -6,7 +6,7 @@ use Vinculado\Helpers\SyncHelper;
 
 class SettingsService
 {
-    public const SETTING_MASTER_URL_SLUG = 'iws_vinculado_master_url';
+    public const SETTING_MASTER_TOKEN      = 'iws_vinculado_master_token';
     public const SETTING_SLAVES_COUNT_SLUG = 'iws_vinculado_slaves_count';
     public const SETTING_API_TOKEN = 'iws_vinculado_api_token';
 
@@ -28,14 +28,13 @@ class SettingsService
             'default' => '',
             'callback' => 'renderSettingApiToken',
         ],
-        'Master URL' => [
-            'name' => self::SETTING_MASTER_URL_SLUG,
+        'Master token' => [
+            'name' => self::SETTING_MASTER_TOKEN,
             'section' => 'iws_vinculado_master_slave_settings',
             'type' => 'string',
-            'description' => 'Full URL to the master shop. Leave empty if this shop is the master shop.'.
-                             ' Example: https://www.myshop.com',
+            'description' => 'API token of the master shop. Leave empty if this shop is the master shop.',
             'default' => '',
-            'callback' => 'renderSettingMasterUrl',
+            'callback' => 'renderSettingMasterToken',
         ],
         'Amount of slaves' => [
             'name' => self::SETTING_SLAVES_COUNT_SLUG,
@@ -49,32 +48,32 @@ class SettingsService
 
     public function __construct()
     {
-        $this->addSlavesUrlsSettings();
+        $this->addSlavesTokensSettings();
     }
 
-    private function addSlavesUrlsSettings()
+    private function addSlavesTokensSettings()
     {
         $amountOfSlaves = (int) get_option('iws_vinculado_slaves_count', 0);
         if ($amountOfSlaves !== false) {
             for ($i = 1; $i <= $amountOfSlaves; $i++) {
-                $slaveUrlSetting = [
-                    sprintf('Slave url %d', $i) => [
-                        'name' => sprintf('iws_vinculado_slave_%d_url', $i),
+                $slaveTokenSetting = [
+                    sprintf('Slave %d token', $i) => [
+                        'name' => sprintf('iws_vinculado_slave_%d_token', $i),
                         'section' => 'iws_vinculado_master_slave_settings',
                         'type' => 'string',
-                        'description' => sprintf('Full URL to slave shop %d. Example: https://www.myshop.com', $i),
+                        'description' => sprintf('Token of slave shop %d', $i),
                         'default' => '',
-                        'callback' => 'renderSettingSlaveUrl',
+                        'callback' => 'renderSettingSlaveToken',
                     ]
                 ];
-                $this->settings = array_merge($this->settings, $slaveUrlSetting);
+                $this->settings = array_merge($this->settings, $slaveTokenSetting);
             }
         }
 
-        // Check if there are more slave urls set than $amountOfSlaves. If so, delete them
+        // Check if there are more slave tokens set than $amountOfSlaves. If so, delete them
         $checkExcessSlavesIterator = $amountOfSlaves + 1;
-        while (get_option(sprintf('iws_vinculado_slave_%d_url', $checkExcessSlavesIterator), false) !== false) {
-            delete_option(sprintf('iws_vinculado_slave_%d_url', $checkExcessSlavesIterator));
+        while (get_option(sprintf('iws_vinculado_slave_%d_token', $checkExcessSlavesIterator), false) !== false) {
+            delete_option(sprintf('iws_vinculado_slave_%d_token', $checkExcessSlavesIterator));
             $checkExcessSlavesIterator++;
         }
     }
@@ -154,13 +153,12 @@ class SettingsService
         );
     }
 
-    private function renderSettingMasterUrl(array $settings)
+    private function renderSettingMasterToken(array $settings)
     {
         $htmlTemplate = '<input '.
                             'type="text" '.
                             'name="%s" '.
                             'value="%s" '.
-                            'placeholder="https://www.myshop.com" '.
                             'class="regular-text"'.
                         '>';
 
@@ -175,13 +173,12 @@ class SettingsService
         );
     }
 
-    private function renderSettingSlaveUrl(array $settings)
+    private function renderSettingSlaveToken(array $settings)
     {
         $htmlTemplate = '<input '.
                             'type="text" '.
                             'name="%s" '.
                             'value="%s" '.
-                            'placeholder="https://www.myshop.com" '.
                             'class="regular-text"'.
                         '>';
 

@@ -16,7 +16,7 @@ class SyncHelper
      */
     public static function shopIsMaster(): bool
     {
-        $masterUrlValue = get_option(SettingsService::SETTING_MASTER_URL_SLUG, '');
+        $masterUrlValue = get_option(SettingsService::SETTING_MASTER_TOKEN, '');
 
         return  $masterUrlValue !== false && $masterUrlValue === '';
     }
