@@ -3,6 +3,7 @@
 namespace Vinculado\Services;
 
 use Vinculado\Helpers\SyncHelper;
+use WP_Query;
 
 class SettingsService
 {
@@ -20,6 +21,7 @@ class SettingsService
     private $sections = [
         self::DEFAULT_TAB_SLUG => [
             'name' => 'General settings',
+            'description' => '',
             'settings' => [
                 'API token' => [
                     'name' => self::SETTING_API_TOKEN,
@@ -32,6 +34,7 @@ class SettingsService
         ],
         'iws_vinculado_master_slave_settings' => [
             'name' => 'Master/slave settings',
+            'description' => '',
             'settings' => [
                 'Master token' => [
                     'name' => self::SETTING_MASTER_TOKEN,
@@ -51,7 +54,17 @@ class SettingsService
         ],
         'iws_vinculado_product_settings' => [
             'name' => 'Product settings',
-            'settings' => [],
+            'description' => 'Exclude products from the sync.',
+            'settings' => [
+                'Exclude products' => [
+                    'name' => self::SETTING_EXCLUDE_PRODUCTS,
+                    'type' => 'array',
+                    'description' => 'Exclude specific products from sync. Hold the CTRL key to select multiple',
+                    'default' => [],
+                    'callback' => 'renderSettingExcludeProducts',
+                ],
+
+            ],
         ],
     ];
 
@@ -99,7 +112,11 @@ class SettingsService
             add_settings_section(
                 $this->currentTab,
                 $this->sections[$this->currentTab]['name'],
-                function () {},
+                function () use ($sectionArguments) {
+                    if (array_key_exists('description', $sectionArguments)) {
+                        echo sprintf('<p class="description">%s</p>', $sectionArguments['description']);
+                    }
+                },
                 $this->slugName
             );
 
@@ -252,5 +269,56 @@ class SettingsService
             $settings['name'],
             $optionsHtml
         );
+    }
+
+    private function renderSettingExcludeProducts(array $settings)
+    {
+        $products = $this->getAllProducts();
+        $selectedProducts = get_option($settings['name']);
+        if (!is_array($selectedProducts)) {
+            $selectedProducts = [$selectedProducts];
+        }
+
+        $htmlTemplate = '<select name="%s[]" multiple>%s</select>';
+
+        $optionsHtml = '';
+        $optionHtmlTemplate = '<option value="%d"%s>%s</option>';
+        foreach ($products as $product) {
+            $optionsHtml .= sprintf(
+                $optionHtmlTemplate,
+                $product->get_id(),
+                in_array($product->get_id(), $selectedProducts) ? 'selected="selected"' : '',
+                $product->get_name()
+            );
+        }
+
+        if ($settings['description']) {
+            $htmlTemplate .= sprintf('<p class="description">%s</p>', $settings['description']);
+        }
+
+        echo sprintf(
+            $htmlTemplate,
+            $settings['name'],
+            $optionsHtml
+        );
+    }
+
+    private function getAllProducts(): array
+    {
+        $products = [];
+
+        $args = [
+          'post_type' => 'product',
+        ];
+
+        $loop = new WP_Query($args);
+        while ($loop->have_posts()) : $loop->the_post();
+            global $product;
+            $products[] = $product;
+        endwhile;
+
+        wp_reset_query();
+
+        return $products;
     }
 }
