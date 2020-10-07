@@ -16,34 +16,40 @@ class SettingsService
     private $currentTab;
 
     private $sections = [
-        'iws_vinculado_general_settings' => ['name' => 'General settings'],
-        'iws_vinculado_master_slave_settings' => ['name' => 'Master/slave settings'],
-    ];
-
-    private $settings = [
-        'API token' => [
-            'name' => self::SETTING_API_TOKEN,
-            'section' => 'iws_vinculado_general_settings',
-            'type' => 'string',
-            'description' => null,
-            'default' => '',
-            'callback' => 'renderSettingApiToken',
+        'iws_vinculado_general_settings' => [
+            'name' => 'General settings',
+            'settings' => [
+                'API token' => [
+                    'name' => self::SETTING_API_TOKEN,
+                    'type' => 'string',
+                    'description' => null,
+                    'default' => '',
+                    'callback' => 'renderSettingApiToken',
+                ],
+            ],
         ],
-        'Master token' => [
-            'name' => self::SETTING_MASTER_TOKEN,
-            'section' => 'iws_vinculado_master_slave_settings',
-            'type' => 'string',
-            'description' => 'API token of the master shop. Leave empty if this shop is the master shop.',
-            'default' => '',
-            'callback' => 'renderSettingMasterToken',
+        'iws_vinculado_master_slave_settings' => [
+            'name' => 'Master/slave settings',
+            'settings' => [
+                'Master token' => [
+                    'name' => self::SETTING_MASTER_TOKEN,
+                    'type' => 'string',
+                    'description' => 'API token of the master shop. Leave empty if this shop is the master shop.',
+                    'default' => '',
+                    'callback' => 'renderSettingMasterToken',
+                ],
+                'Amount of slaves' => [
+                    'name' => self::SETTING_SLAVES_COUNT_SLUG,
+                    'type' => 'integer',
+                    'description' => 'How many slaves does this master have? If this is not a master, set it to 0',
+                    'default' => 0,
+                    'callback' => 'renderSettingSlavesCount',
+                ],
+            ],
         ],
-        'Amount of slaves' => [
-            'name' => self::SETTING_SLAVES_COUNT_SLUG,
-            'section' => 'iws_vinculado_master_slave_settings',
-            'type' => 'integer',
-            'description' => 'How many slaves does this master have? If this is not a master, set it to 0',
-            'default' => 0,
-            'callback' => 'renderSettingSlavesCount',
+        'iws_vinculado_product_settings' => [
+            'name' => 'Product settings',
+            'settings' => [],
         ],
     ];
 
@@ -64,14 +70,16 @@ class SettingsService
                 $slaveTokenSetting = [
                     sprintf('Slave %d token', $i) => [
                         'name' => sprintf('iws_vinculado_slave_%d_token', $i),
-                        'section' => 'iws_vinculado_master_slave_settings',
                         'type' => 'string',
                         'description' => sprintf('Token of slave shop %d', $i),
                         'default' => '',
                         'callback' => 'renderSettingSlaveToken',
                     ]
                 ];
-                $this->settings = array_merge($this->settings, $slaveTokenSetting);
+                $this->sections['iws_vinculado_master_slave_settings']['settings'] = array_merge(
+                    $this->sections['iws_vinculado_master_slave_settings']['settings'],
+                    $slaveTokenSetting
+                );
             }
         }
 
@@ -92,32 +100,35 @@ class SettingsService
                 function () {},
                 $this->slugName
             );
-        }
 
-        foreach ($this->settings as $settingLabel => $setting) {
-            if ($setting['section'] !== $this->currentTab) {
+            if ($sectionSlug !== $this->currentTab) {
                 continue;
             }
-            register_setting(
-                $this->pageName,
-                $setting['name'],
-                [
-                    'type' => $setting['type'],
-                    'description' => $setting['description'],
-                    'default' => $setting['default'],
-                ]
-            );
-            add_option($setting['name'], $setting['default']);
-            add_settings_field(
-                $setting['name'],
-                $settingLabel,
-                function () use ($setting) {
-                    $methodName = $setting['callback'];
-                    return $this->{$methodName}($setting);
-                },
-                $this->slugName,
-                $setting['section']
-            );
+
+            foreach ($sectionArguments['settings'] as $settingLabel => $setting) {
+                register_setting(
+                    $this->pageName,
+                    $setting['name'],
+                    [
+                        'type' => $setting['type'],
+                        'description' => $setting['description'],
+                        'default' => $setting['default'],
+                    ]
+                );
+                add_option($setting['name'], $setting['default']);
+                add_settings_field(
+                    $setting['name'],
+                    $settingLabel,
+                    function () use ($setting) {
+                        $methodName = $setting['callback'];
+
+                        return $this->{$methodName}($setting);
+                    },
+                    $this->slugName,
+                    $sectionSlug
+                );
+            }
+
         }
     }
 
