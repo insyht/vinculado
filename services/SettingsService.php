@@ -151,8 +151,9 @@ class SettingsService
             );
         }
 
+        $formUrl = esc_url(add_query_arg('tab', $this->currentTab, admin_url('options.php')));
         echo    '</h2>'.
-                '<form action="options.php" method="post">';
+                '<form action="'. $formUrl.'" method="post">';
 
         settings_fields($this->pageName);
         do_settings_sections($this->slugName);
