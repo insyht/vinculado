@@ -13,6 +13,7 @@ class SettingsService
     private $pageName = 'Vinculado';
     private $slugName = 'vinculado';
     private $icon = 'dashicons-rest-api';
+    private $currentTab;
 
     private $sections = [
         'iws_vinculado_general_settings' => ['name' => 'General settings'],
@@ -48,6 +49,10 @@ class SettingsService
 
     public function __construct()
     {
+        $this->currentTab = isset($_GET['tab']) && array_key_exists($_GET['tab'], $this->sections)
+            ? $_GET['tab']
+            : 'iws_vinculado_general_settings';
+
         $this->addSlavesTokensSettings();
     }
 
@@ -82,14 +87,17 @@ class SettingsService
     {
         foreach ($this->sections as $sectionSlug => $sectionArguments) {
             add_settings_section(
-                $sectionSlug,
-                $sectionArguments['name'],
+                $this->currentTab,
+                $this->sections[$this->currentTab]['name'],
                 function () {},
                 $this->slugName
             );
         }
 
         foreach ($this->settings as $settingLabel => $setting) {
+            if ($setting['section'] !== $this->currentTab) {
+                continue;
+            }
             register_setting(
                 $this->pageName,
                 $setting['name'],
@@ -129,13 +137,29 @@ class SettingsService
 
     private function renderHtml()
     {
-        echo '<div class="wrap"><h1>Vinculado Product Sync instellingen</h1><form action="options.php" method="post">';
+        echo '<div class="wrap">'.
+                '<h1>Vinculado Product Sync instellingen</h1>'.
+                '<h2 class="nav-tab-wrapper">';
+
+        $urlTemplate = '<a href="?page=vinculado&tab=%s" class="nav-tab%s">%s</a>';
+        foreach ($this->sections as $sectionSlug => $section) {
+            echo sprintf(
+                $urlTemplate,
+                $sectionSlug,
+                $this->currentTab === $sectionSlug ? ' nav-tab-active' : '',
+                $section['name']
+            );
+        }
+
+        echo    '</h2>'.
+                '<form action="options.php" method="post">';
 
         settings_fields($this->pageName);
         do_settings_sections($this->slugName);
         submit_button(__('Save Settings', 'textdomain'));
 
-        echo '</form></div>';
+        echo    '</form>'.
+            '</div>';
     }
 
     private function renderSettingApiToken(array $settings)
