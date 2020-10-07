@@ -8,7 +8,9 @@ class SettingsService
 {
     public const SETTING_MASTER_TOKEN      = 'iws_vinculado_master_token';
     public const SETTING_SLAVES_COUNT_SLUG = 'iws_vinculado_slaves_count';
-    public const SETTING_API_TOKEN = 'iws_vinculado_api_token';
+    public const SETTING_API_TOKEN         = 'iws_vinculado_api_token';
+    public const SETTING_EXCLUDE_PRODUCTS  = 'iws_vinculado_exclude_products';
+    public const DEFAULT_TAB_SLUG          = 'iws_vinculado_general_settings';
 
     private $pageName = 'Vinculado';
     private $slugName = 'vinculado';
@@ -16,7 +18,7 @@ class SettingsService
     private $currentTab;
 
     private $sections = [
-        'iws_vinculado_general_settings' => [
+        self::DEFAULT_TAB_SLUG => [
             'name' => 'General settings',
             'settings' => [
                 'API token' => [
@@ -57,7 +59,7 @@ class SettingsService
     {
         $this->currentTab = isset($_GET['tab']) && array_key_exists($_GET['tab'], $this->sections)
             ? $_GET['tab']
-            : 'iws_vinculado_general_settings';
+            : self::DEFAULT_TAB_SLUG;
 
         $this->addSlavesTokensSettings();
     }
