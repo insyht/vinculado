@@ -11,17 +11,21 @@ class SettingsService
     public const SETTING_SLAVES_COUNT_SLUG = 'iws_vinculado_slaves_count';
     public const SETTING_API_TOKEN         = 'iws_vinculado_api_token';
     public const SETTING_EXCLUDE_PRODUCTS  = 'iws_vinculado_exclude_products';
+    public const SETTING_INCLUDE_PRODUCTS  = 'iws_vinculado_include_products';
     public const DEFAULT_TAB_SLUG          = 'iws_vinculado_general_settings';
 
     private $pageName = 'Vinculado';
     private $slugName = 'vinculado';
     private $icon = 'dashicons-rest-api';
     private $currentTab;
+    private $products = [];
 
     private $sections = [
         self::DEFAULT_TAB_SLUG => [
             'name' => 'General settings',
             'description' => '',
+            'showSaveButton' => false,
+            'callback' => 'renderDefaultSettingsPage',
             'settings' => [
                 'API token' => [
                     'name' => self::SETTING_API_TOKEN,
@@ -35,6 +39,9 @@ class SettingsService
         'iws_vinculado_master_slave_settings' => [
             'name' => 'Master/slave settings',
             'description' => '',
+            'showSaveButton' => true,
+            'hasForm' => true,
+            'callback' => 'renderDefaultSettingsPage',
             'settings' => [
                 'Master token' => [
                     'name' => self::SETTING_MASTER_TOKEN,
@@ -54,8 +61,19 @@ class SettingsService
         ],
         'iws_vinculado_product_settings' => [
             'name' => 'Product settings',
-            'description' => 'Exclude products from the sync.',
+            'description' => 'Include/exclude products from the sync. By default all products are included.',
+            'showSaveButton' => true,
+            'hasForm' => true,
+            'callback' => 'renderDefaultSettingsPage',
             'settings' => [
+                'Include products' => [
+                    'name' => self::SETTING_INCLUDE_PRODUCTS,
+                    'type' => 'array',
+                    'description' => 'Include specific products. This overrides all exclude rules. '.
+                                     'Hold the CTRL key to select multiple',
+                    'default' => [],
+                    'callback' => 'renderSettingIncludeProducts',
+                ],
                 'Exclude products' => [
                     'name' => self::SETTING_EXCLUDE_PRODUCTS,
                     'type' => 'array',
@@ -63,8 +81,15 @@ class SettingsService
                     'default' => [],
                     'callback' => 'renderSettingExcludeProducts',
                 ],
-
             ],
+        ],
+        'iws_vinculado_logs' => [
+            'name' => 'Logs',
+            'description' => '',
+            'showSaveButton' => false,
+            'hasForm' => false,
+            'callback' => 'renderSettingLogs',
+            'settings' => [],
         ],
     ];
 
@@ -167,6 +192,10 @@ class SettingsService
 
     private function renderHtml()
     {
+        $showSaveButton = false;
+        $callback = null;
+        $settings = [];
+
         echo '<div class="wrap">'.
                 '<h1>Vinculado Product Sync instellingen</h1>'.
                 '<h2 class="nav-tab-wrapper">';
@@ -179,18 +208,35 @@ class SettingsService
                 $this->currentTab === $sectionSlug ? ' nav-tab-active' : '',
                 $section['name']
             );
+
+            if ($sectionSlug === $this->currentTab) {
+                $showSaveButton = $section['showSaveButton'] ?? false;
+                $callback = $section['callback'] ?? null;
+                $settings = $section;
+            }
         }
 
-        $formUrl = esc_url(add_query_arg('tab', $this->currentTab, admin_url('options.php')));
-        echo    '</h2>'.
-                '<form action="'. $formUrl.'" method="post">';
+        echo    '</h2>';
 
+        if ($callback) {
+            call_user_func([$this, $callback], $settings);
+        }
+
+        echo '</div>';
+    }
+
+    private function renderDefaultSettingsPage(array $settings)
+    {
+        $formUrl = esc_url(add_query_arg('tab', $this->currentTab, admin_url('options.php')));
+
+        echo '<form action="' . $formUrl . '" method="post">';
         settings_fields($this->pageName);
         do_settings_sections($this->slugName);
-        submit_button(__('Save Settings', 'textdomain'));
+        if ($settings['showSaveButton']) {
+            submit_button(__('Save Settings', 'textdomain'));
+        }
 
-        echo    '</form>'.
-            '</div>';
+        echo '</form>';
     }
 
     private function renderSettingApiToken(array $settings)
@@ -303,22 +349,84 @@ class SettingsService
         );
     }
 
+    private function renderSettingIncludeProducts(array $settings)
+    {
+        $products = $this->getAllProducts();
+        $selectedProducts = get_option($settings['name']);
+        if (!is_array($selectedProducts)) {
+            $selectedProducts = [$selectedProducts];
+        }
+
+        $htmlTemplate = '<select name="%s[]" multiple>%s</select>';
+
+        $optionsHtml = '';
+        $optionHtmlTemplate = '<option value="%d"%s>%s</option>';
+        foreach ($products as $product) {
+            $optionsHtml .= sprintf(
+                $optionHtmlTemplate,
+                $product->get_id(),
+                in_array($product->get_id(), $selectedProducts) ? 'selected="selected"' : '',
+                $product->get_name()
+            );
+        }
+
+        if ($settings['description']) {
+            $htmlTemplate .= sprintf('<p class="description">%s</p>', $settings['description']);
+        }
+
+        echo sprintf(
+            $htmlTemplate,
+            $settings['name'],
+            $optionsHtml
+        );
+    }
+
+    private function renderSettingLogs(array $settings)
+    {
+        // todo Enable filtering and ordering functionality
+        $filters = $_GET['filters'] ?? [];
+        $orderings = $_GET['orderings'] ?? [];
+        $formUrl = esc_url(add_query_arg('tab', $this->currentTab, admin_url('options.php')));
+
+        $logService = new LogService();
+        $logs = $logService->getLogs($filters, $orderings);
+
+        $html = '<form action="' . $formUrl . '" method="get">';
+        $html .= '<br><table>';
+        $html .= '<tr><th>Origin</th><th>Destination</th><th>Level</th><th>Date</th><th>Message</th></tr>';
+
+        foreach ($logs as $log) {
+            $html .= sprintf(
+                '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>',
+                $log->getOrigin(),
+                $log->getDestination(),
+                $log->getLevel(),
+                $log->getDate()->format('d-m-Y H:i:s'),
+                $log->getMessage()
+            );
+        }
+
+        $html .= '</table></form>';
+
+        echo $html;
+    }
+
     private function getAllProducts(): array
     {
-        $products = [];
+        if (!$this->products) {
+            $args = [
+                'post_type' => 'product',
+            ];
 
-        $args = [
-          'post_type' => 'product',
-        ];
+            $loop = new WP_Query($args);
+            while ($loop->have_posts()) : $loop->the_post();
+                global $product;
+                $this->products[] = $product;
+            endwhile;
 
-        $loop = new WP_Query($args);
-        while ($loop->have_posts()) : $loop->the_post();
-            global $product;
-            $products[] = $product;
-        endwhile;
+            wp_reset_query();
+        }
 
-        wp_reset_query();
-
-        return $products;
+        return $this->products;
     }
 }

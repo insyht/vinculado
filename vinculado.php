@@ -20,7 +20,35 @@
 require_once 'safetychecks.php';
 require_once 'autoload.php';
 
-$settingsService = new \Vinculado\Services\SettingsService();
+use Vinculado\Services\SettingsService;
+
+
+$settingsService = new SettingsService();
 
 add_action('admin_menu', [$settingsService, 'setupSettings']);
 add_action('admin_init', [$settingsService, 'renderSettings']);
+
+register_activation_hook(__FILE__, 'databaseSetup');
+
+function databaseSetup()
+{
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    global $wpdb;
+
+    $queries = [
+        "CREATE TABLE `vinculado_logs` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `origin` VARCHAR(100) NOT NULL,
+            `destination` VARCHAR(100) NOT NULL,
+            `level` ENUM('emergency','alert','critical','error','warning','notice','info','debug') NOT NULL,
+            `date` DATETIME NOT NULL,
+            `message` TEXT NOT NULL,
+            PRIMARY KEY (`id`)
+        ) COLLATE='utf8mb4_general_ci';",
+
+    ];
+
+    foreach ($queries as $query) {
+        dbDelta($query);
+    }
+}
