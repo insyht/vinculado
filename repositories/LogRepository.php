@@ -18,7 +18,7 @@ class LogRepository extends AbstractRepository
      *
      * Example $orderings:
      *  $orderings = [
-     *      'level' => 'ASC',
+     *      'level' => 'asc',
      *  ]
      *
      * @param array $filters
@@ -62,7 +62,7 @@ class LogRepository extends AbstractRepository
                 if ($addedOrderings > 0) {
                     $query .= ', ';
                 }
-                $query .= sprintf(' `%s` %s', $column, $direction);
+                $query .= sprintf(' `%s` %s', $column, strtoupper($direction));
                 $addedOrderings++;
             }
         }
