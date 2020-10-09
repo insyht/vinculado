@@ -19,6 +19,7 @@ class SettingsService
     private $icon = 'dashicons-rest-api';
     private $currentTab;
     private $products = [];
+    private $orderings = [];
 
     private $sections = [
         self::DEFAULT_TAB_SLUG => [
@@ -381,19 +382,28 @@ class SettingsService
         );
     }
 
-    private function renderSettingLogs(array $settings)
+    private function renderSettingLogs(array $settings): void
     {
-        // todo Enable filtering and ordering functionality
+        // todo Enable filtering functionality
         $filters = $_GET['filters'] ?? [];
-        $orderings = $_GET['orderings'] ?? [];
-        $formUrl = esc_url(add_query_arg('tab', $this->currentTab, admin_url('options.php')));
+        $orderings = $this->getOrderings();
+
+        $queryArgs = [
+            'page' => 'vinculado',
+            'tab' => $this->currentTab,
+        ];
 
         $logService = new LogService();
         $logs = $logService->getLogs($filters, $orderings);
 
-        $html = '<form action="' . $formUrl . '" method="get">';
-        $html .= '<br><table>';
-        $html .= '<tr><th>Origin</th><th>Destination</th><th>Level</th><th>Date</th><th>Message</th></tr>';
+        $html = '<br><table>';
+        $html .= '<tr>';
+        $html .= sprintf('    <th><a href="%s">Origin</a></th>', $this->getOrderingUrl('origin', $queryArgs));
+        $html .= sprintf('    <th><a href="%s">Destination</a></th>', $this->getOrderingUrl('destination', $queryArgs));
+        $html .= sprintf('    <th><a href="%s">Level</a></th>', $this->getOrderingUrl('level', $queryArgs));
+        $html .= sprintf('    <th><a href="%s">Date</a></th>', $this->getOrderingUrl('date', $queryArgs));
+        $html .= sprintf('    <th><a href="%s">Message</a></th>', $this->getOrderingUrl('message', $queryArgs));
+        $html .= '</tr>';
 
         foreach ($logs as $log) {
             $html .= sprintf(
@@ -406,9 +416,56 @@ class SettingsService
             );
         }
 
-        $html .= '</table></form>';
+        $html .= '</table>';
 
         echo $html;
+    }
+
+    private function getOrderings()
+    {
+        $availableOrderingColumns = ['origin', 'destination', 'level', 'date', 'message'];
+
+        if (!$this->orderings) {
+            $this->orderings = [];
+            if (isset($_GET['orderings'])) {
+                $splitOrderings = explode(',', $_GET['orderings']);
+                if ($splitOrderings === false) {
+                    return $this->orderings;
+                }
+                foreach ($splitOrderings as $ordering) {
+                    $splitKeyValue = explode(':', $ordering);
+                    if ($splitKeyValue === false ||
+                        !array_key_exists(0, $splitKeyValue) ||
+                        !array_key_exists(1, $splitKeyValue) ||
+                        !in_array(strtolower($splitKeyValue[0]), $availableOrderingColumns) ||
+                        !in_array(strtolower($splitKeyValue[1]), ['asc', 'desc'])
+                    ) {
+                        continue;
+                    }
+                    $this->orderings[$splitKeyValue[0]] = $splitKeyValue[1];
+                }
+            }
+        }
+
+        return $this->orderings;
+    }
+
+    private function getOrderingUrl(string $name, array $queryArgs)
+    {
+        $orderings = $this->getOrderings();
+        if (array_key_exists($name, $orderings)) {
+            $orderings[$name] = strtolower($orderings[$name]) === 'asc' ? 'desc' : 'asc';
+        } else {
+            $orderings[$name] = 'asc';
+        }
+
+        $simplifiedOrderings = [];
+        foreach ($orderings as $column => $direction) {
+            $simplifiedOrderings[] = $column . ':' . $direction;
+        }
+        $queryArgs['orderings'] = implode(',', $simplifiedOrderings);
+
+        return esc_url(add_query_arg($queryArgs, admin_url('admin.php')));
     }
 
     private function getAllProducts(): array
