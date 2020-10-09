@@ -8,6 +8,15 @@ use Vinculado\Repositories\LogRepository;
 
 class Log extends AbstractModel
 {
+    public const LEVEL_EMERGENCY = 'emergency';
+    public const LEVEL_ALERT     = 'alert';
+    public const LEVEL_CRITICAL  = 'critical';
+    public const LEVEL_ERROR     = 'error';
+    public const LEVEL_WARNING   = 'warning';
+    public const LEVEL_NOTICE    = 'notice';
+    public const LEVEL_INFO      = 'info';
+    public const LEVEL_DEBUG     = 'debug';
+
     /** @var string */
     private $origin;
     /** @var string */
