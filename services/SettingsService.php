@@ -3,7 +3,6 @@
 namespace Vinculado\Services;
 
 use Vinculado\Helpers\SyncHelper;
-use WP_Query;
 
 class SettingsService
 {
@@ -18,8 +17,8 @@ class SettingsService
     private $slugName = 'vinculado';
     private $icon = 'dashicons-rest-api';
     private $currentTab;
-    private $products = [];
     private $orderings = [];
+    private $productService;
 
     private $sections = [
         self::DEFAULT_TAB_SLUG => [
@@ -99,6 +98,7 @@ class SettingsService
         $this->currentTab = isset($_GET['tab']) && array_key_exists($_GET['tab'], $this->sections)
             ? $_GET['tab']
             : self::DEFAULT_TAB_SLUG;
+        $this->productService = new ProductService();
 
         $this->addSlavesTokensSettings();
     }
@@ -320,7 +320,7 @@ class SettingsService
 
     private function renderSettingExcludeProducts(array $settings)
     {
-        $products = $this->getAllProducts();
+        $products = $this->productService->getAllProducts();
         $selectedProducts = get_option($settings['name']);
         if (!is_array($selectedProducts)) {
             $selectedProducts = [$selectedProducts];
@@ -352,7 +352,7 @@ class SettingsService
 
     private function renderSettingIncludeProducts(array $settings)
     {
-        $products = $this->getAllProducts();
+        $products = $this->productService->getAllProducts();
         $selectedProducts = get_option($settings['name']);
         if (!is_array($selectedProducts)) {
             $selectedProducts = [$selectedProducts];
@@ -466,24 +466,5 @@ class SettingsService
         $queryArgs['orderings'] = implode(',', $simplifiedOrderings);
 
         return esc_url(add_query_arg($queryArgs, admin_url('admin.php')));
-    }
-
-    private function getAllProducts(): array
-    {
-        if (!$this->products) {
-            $args = [
-                'post_type' => 'product',
-            ];
-
-            $loop = new WP_Query($args);
-            while ($loop->have_posts()) : $loop->the_post();
-                global $product;
-                $this->products[] = $product;
-            endwhile;
-
-            wp_reset_query();
-        }
-
-        return $this->products;
     }
 }
