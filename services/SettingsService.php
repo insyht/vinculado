@@ -2,6 +2,7 @@
 
 namespace Vinculado\Services;
 
+use Vinculado\Config;
 use Vinculado\Helpers\SyncHelper;
 
 class SettingsService
@@ -19,83 +20,13 @@ class SettingsService
     private $currentTab;
     private $orderings = [];
     private $productService;
+    private $config;
 
-    private $sections = [
-        self::DEFAULT_TAB_SLUG => [
-            'name' => 'General settings',
-            'description' => '',
-            'showSaveButton' => false,
-            'callback' => 'renderDefaultSettingsPage',
-            'settings' => [
-                'API token' => [
-                    'name' => self::SETTING_API_TOKEN,
-                    'type' => 'string',
-                    'description' => null,
-                    'default' => '',
-                    'callback' => 'renderSettingApiToken',
-                ],
-            ],
-        ],
-        'iws_vinculado_master_slave_settings' => [
-            'name' => 'Master/slave settings',
-            'description' => '',
-            'showSaveButton' => true,
-            'hasForm' => true,
-            'callback' => 'renderDefaultSettingsPage',
-            'settings' => [
-                'Master token' => [
-                    'name' => self::SETTING_MASTER_TOKEN,
-                    'type' => 'string',
-                    'description' => 'API token of the master shop. Leave empty if this shop is the master shop.',
-                    'default' => '',
-                    'callback' => 'renderSettingMasterToken',
-                ],
-                'Amount of slaves' => [
-                    'name' => self::SETTING_SLAVES_COUNT_SLUG,
-                    'type' => 'integer',
-                    'description' => 'How many slaves does this master have? If this is not a master, set it to 0',
-                    'default' => 0,
-                    'callback' => 'renderSettingSlavesCount',
-                ],
-            ],
-        ],
-        'iws_vinculado_product_settings' => [
-            'name' => 'Product settings',
-            'description' => 'Include/exclude products from the sync. By default all products are included.',
-            'showSaveButton' => true,
-            'hasForm' => true,
-            'callback' => 'renderDefaultSettingsPage',
-            'settings' => [
-                'Include products' => [
-                    'name' => self::SETTING_INCLUDE_PRODUCTS,
-                    'type' => 'array',
-                    'description' => 'Include specific products. This overrides all exclude rules. '.
-                                     'Hold the CTRL key to select multiple',
-                    'default' => [],
-                    'callback' => 'renderSettingIncludeProducts',
-                ],
-                'Exclude products' => [
-                    'name' => self::SETTING_EXCLUDE_PRODUCTS,
-                    'type' => 'array',
-                    'description' => 'Exclude specific products from sync. Hold the CTRL key to select multiple',
-                    'default' => [],
-                    'callback' => 'renderSettingExcludeProducts',
-                ],
-            ],
-        ],
-        'iws_vinculado_logs' => [
-            'name' => 'Logs',
-            'description' => '',
-            'showSaveButton' => false,
-            'hasForm' => false,
-            'callback' => 'renderSettingLogs',
-            'settings' => [],
-        ],
-    ];
 
     public function __construct()
     {
-        $this->currentTab = isset($_GET['tab']) && array_key_exists($_GET['tab'], $this->sections)
+        $this->config = (new Config())->get('settings');
+        $this->currentTab = isset($_GET['tab']) && array_key_exists($_GET['tab'], $this->config['sections'])
             ? $_GET['tab']
             : self::DEFAULT_TAB_SLUG;
         $this->productService = new ProductService();
@@ -117,8 +48,8 @@ class SettingsService
                         'callback' => 'renderSettingSlaveToken',
                     ]
                 ];
-                $this->sections['iws_vinculado_master_slave_settings']['settings'] = array_merge(
-                    $this->sections['iws_vinculado_master_slave_settings']['settings'],
+                $this->config['sections']['iws_vinculado_master_slave_settings']['settings'] = array_merge(
+                    $this->config['sections']['iws_vinculado_master_slave_settings']['settings'],
                     $slaveTokenSetting
                 );
             }
@@ -134,10 +65,10 @@ class SettingsService
 
     public function renderSettings()
     {
-        foreach ($this->sections as $sectionSlug => $sectionArguments) {
+        foreach ($this->config['sections'] as $sectionSlug => $sectionArguments) {
             add_settings_section(
                 $this->currentTab,
-                $this->sections[$this->currentTab]['name'],
+                $this->config['sections'][$this->currentTab]['name'],
                 function () use ($sectionArguments) {
                     if (array_key_exists('description', $sectionArguments)) {
                         echo sprintf('<p class="description">%s</p>', $sectionArguments['description']);
@@ -202,7 +133,7 @@ class SettingsService
                 '<h2 class="nav-tab-wrapper">';
 
         $urlTemplate = '<a href="?page=vinculado&tab=%s" class="nav-tab%s">%s</a>';
-        foreach ($this->sections as $sectionSlug => $section) {
+        foreach ($this->config['sections'] as $sectionSlug => $section) {
             echo sprintf(
                 $urlTemplate,
                 $sectionSlug,
