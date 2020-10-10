@@ -386,20 +386,23 @@ class SettingsService
 
         $html .= '<br><table>';
         $html .= '<tr>';
-        $html .= sprintf('    <th><a href="%s">Origin</a></th>', $this->getOrderingUrl('origin', $queryArgs));
-        $html .= sprintf('    <th><a href="%s">Destination</a></th>', $this->getOrderingUrl('destination', $queryArgs));
-        $html .= sprintf('    <th><a href="%s">Level</a></th>', $this->getOrderingUrl('level', $queryArgs));
-        $html .= sprintf('    <th><a href="%s">Date</a></th>', $this->getOrderingUrl('date', $queryArgs));
-        $html .= sprintf('    <th><a href="%s">Message</a></th>', $this->getOrderingUrl('message', $queryArgs));
+        $html .= sprintf('    <td><a href="%s">Origin</a></td>', $this->getOrderingUrl('origin', $queryArgs));
+        $html .= sprintf('    <td><a href="%s">Destination</a></td>', $this->getOrderingUrl('destination', $queryArgs));
+        $html .= sprintf('    <td><a href="%s">Level</a></td>', $this->getOrderingUrl('level', $queryArgs));
+        $html .= sprintf('    <td><a href="%s">Date</a></td>', $this->getOrderingUrl('date', $queryArgs));
+        $html .= sprintf('    <td><a href="%s">Message</a></td>', $this->getOrderingUrl('message', $queryArgs));
         $html .= '</tr>';
 
+        $limitTextCss = ' style="max-width: 600px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;"';
         foreach ($logs as $log) {
             $html .= sprintf(
-                '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>',
+                '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td title="%s"%s>%s</td></tr>',
                 $log->getOrigin(),
                 $log->getDestination(),
                 $log->getLevel(),
                 $log->getDate()->format('d-m-Y H:i:s'),
+                $log->getMessage(),
+                $limitTextCss,
                 $log->getMessage()
             );
         }
