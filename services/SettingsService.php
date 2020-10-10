@@ -317,17 +317,74 @@ class SettingsService
     {
         // todo Enable filtering functionality
         $filters = $_GET['filters'] ?? [];
+        $limit = (int)($_GET['limit'] ?? 50);
         $orderings = $this->getOrderings();
 
         $queryArgs = [
             'page' => 'vinculado',
             'tab' => $this->currentTab,
+            'limit' => $limit,
         ];
 
-        $logService = new LogService();
-        $logs = $logService->getLogs($filters, $orderings);
+        $simplifiedOrderings = [];
+        foreach ($orderings as $column => $direction) {
+            $simplifiedOrderings[] = $column . ':' . $direction;
+        }
+        if (!empty($simplifiedOrderings)) {
+            $queryArgs['orderings'] = implode(',', $simplifiedOrderings);
+        }
 
-        $html = '<br><table>';
+        $logService = new LogService();
+        $logs = $logService->getLogs($filters, $orderings, $limit);
+
+        $html = '<br>';
+
+        $html .= '<label>Limit lines: </label>';
+        $queryArgs['limit'] = 10;
+        $html .= sprintf(
+            '<a href="%s" class="button%s">10 lines</a> ',
+            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $limit === 10 ? ' button-primary' : ''
+        );
+        $queryArgs['limit'] = 20;
+        $html .= sprintf(
+            '<a href="%s" class="button%s">20 lines</a> ',
+            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $limit === 20 ? ' button-primary' : ''
+        );
+        $queryArgs['limit'] = 50;
+        $html .= sprintf(
+            '<a href="%s" class="button%s">50 lines</a> ',
+            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $limit === 50 ? ' button-primary' : ''
+        );
+        $queryArgs['limit'] = 100;
+        $html .= sprintf(
+            '<a href="%s" class="button%s">100 lines</a> ',
+            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $limit === 100 ? ' button-primary' : ''
+        );
+        $queryArgs['limit'] = 250;
+        $html .= sprintf(
+            '<a href="%s" class="button%s">250 lines</a> ',
+            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $limit === 250 ? ' button-primary' : ''
+        );
+        $queryArgs['limit'] = $limit;
+
+        if (array_key_exists('orderings', $queryArgs)) {
+            $backupOrderings = $queryArgs['orderings'];
+            unset($queryArgs['orderings']);
+        }
+        $html .= sprintf(
+            '<br><a href="%s" class="button button-primary">Reset sorting</a><br>',
+            esc_url(add_query_arg($queryArgs, admin_url('admin.php')))
+        );
+        if (isset($backupOrderings)) {
+            $queryArgs['orderings'] = $backupOrderings;
+        }
+
+        $html .= '<br><table>';
         $html .= '<tr>';
         $html .= sprintf('    <th><a href="%s">Origin</a></th>', $this->getOrderingUrl('origin', $queryArgs));
         $html .= sprintf('    <th><a href="%s">Destination</a></th>', $this->getOrderingUrl('destination', $queryArgs));

@@ -23,10 +23,11 @@ class LogRepository extends AbstractRepository
      *
      * @param array $filters
      * @param array $orderings
+     * @param int   $limit
      *
      * @return \Vinculado\Models\Log[]
      */
-    public function getLogs(array $filters = [], array $orderings = []): array
+    public function getLogs(array $filters = [], array $orderings = [], int $limit = 50): array
     {
         $logs = [];
 
@@ -65,7 +66,11 @@ class LogRepository extends AbstractRepository
                 $query .= sprintf(' `%s` %s', $column, strtoupper($direction));
                 $addedOrderings++;
             }
+        } else {
+            $query .= ' ORDER BY `date` DESC ';
         }
+
+        $query .= sprintf(' LIMIT %d ', (int)$limit);
 
         $query .= ';';
 

@@ -17,11 +17,12 @@ class LogService
     /**
      * @param array $filters
      * @param array $orderings
+     * @param int   $limit
      *
      * @return Log[]
      */
-    public function getLogs(array $filters = [], array $orderings = []): array
+    public function getLogs(array $filters = [], array $orderings = [], int $limit = 50): array
     {
-        return $this->logRepository->getLogs($filters, $orderings);
+        return $this->logRepository->getLogs($filters, $orderings, $limit);
     }
 }
