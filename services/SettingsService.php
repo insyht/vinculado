@@ -5,6 +5,7 @@ namespace Vinculado\Services;
 use Vinculado\Config;
 use Vinculado\Helpers\SyncHelper;
 
+// todo Maybe split this up into different services that extend from this one, for every settings tab?
 class SettingsService
 {
     public const SETTING_MASTER_TOKEN      = 'iws_vinculado_master_token';
@@ -316,81 +317,53 @@ class SettingsService
     private function renderSettingLogs(array $settings): void
     {
         // todo Enable filtering functionality
-        $filters = $_GET['filters'] ?? [];
-        $limit = (int)($_GET['limit'] ?? 50);
-        $orderings = $this->getOrderings();
-
-        $queryArgs = [
-            'page' => 'vinculado',
-            'tab' => $this->currentTab,
-            'limit' => $limit,
-        ];
-
-        $simplifiedOrderings = [];
-        foreach ($orderings as $column => $direction) {
-            $simplifiedOrderings[] = $column . ':' . $direction;
-        }
-        if (!empty($simplifiedOrderings)) {
-            $queryArgs['orderings'] = implode(',', $simplifiedOrderings);
-        }
+        $queryArgs = $this->getCurrentQueryArgs();
+        $limit = $queryArgs['limit'];
 
         $logService = new LogService();
-        $logs = $logService->getLogs($filters, $orderings, $limit);
+        $logs = $logService->getLogs($queryArgs['filters'], $queryArgs['orderings'], $queryArgs['limit']);
 
         $html = '<br>';
 
         $html .= '<label>Limit lines: </label>';
-        $queryArgs['limit'] = 10;
         $html .= sprintf(
             '<a href="%s" class="button%s">10 lines</a> ',
-            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $this->buildUrl([], ['limit' => 10]),
             $limit === 10 ? ' button-primary' : ''
         );
-        $queryArgs['limit'] = 20;
         $html .= sprintf(
             '<a href="%s" class="button%s">20 lines</a> ',
-            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $this->buildUrl([], ['limit' => 20]),
             $limit === 20 ? ' button-primary' : ''
         );
-        $queryArgs['limit'] = 50;
         $html .= sprintf(
             '<a href="%s" class="button%s">50 lines</a> ',
-            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $this->buildUrl([], ['limit' => 50]),
             $limit === 50 ? ' button-primary' : ''
         );
-        $queryArgs['limit'] = 100;
         $html .= sprintf(
             '<a href="%s" class="button%s">100 lines</a> ',
-            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            $this->buildUrl([], ['limit' => 100]),
             $limit === 100 ? ' button-primary' : ''
         );
-        $queryArgs['limit'] = 250;
         $html .= sprintf(
-            '<a href="%s" class="button%s">250 lines</a> ',
-            esc_url(add_query_arg($queryArgs, admin_url('admin.php'))),
+            '<a href="%s" class="button%s">250 lines</a><br>',
+            $this->buildUrl([], ['limit' => 250]),
             $limit === 250 ? ' button-primary' : ''
         );
-        $queryArgs['limit'] = $limit;
 
-        if (array_key_exists('orderings', $queryArgs)) {
-            $backupOrderings = $queryArgs['orderings'];
-            unset($queryArgs['orderings']);
-        }
         $html .= sprintf(
             '<br><a href="%s" class="button button-primary">Reset sorting</a><br>',
-            esc_url(add_query_arg($queryArgs, admin_url('admin.php')))
+            $this->buildUrl([], [], ['orderings' => []])
         );
-        if (isset($backupOrderings)) {
-            $queryArgs['orderings'] = $backupOrderings;
-        }
 
         $html .= '<br><table>';
         $html .= '<tr>';
-        $html .= sprintf('    <td><a href="%s">Origin</a></td>', $this->getOrderingUrl('origin', $queryArgs));
-        $html .= sprintf('    <td><a href="%s">Destination</a></td>', $this->getOrderingUrl('destination', $queryArgs));
-        $html .= sprintf('    <td><a href="%s">Level</a></td>', $this->getOrderingUrl('level', $queryArgs));
-        $html .= sprintf('    <td><a href="%s">Date</a></td>', $this->getOrderingUrl('date', $queryArgs));
-        $html .= sprintf('    <td><a href="%s">Message</a></td>', $this->getOrderingUrl('message', $queryArgs));
+        $html .= sprintf('    <td><a href="%s">Origin</a></td>', $this->getOrderingUrl('origin'));
+        $html .= sprintf('    <td><a href="%s">Destination</a></td>', $this->getOrderingUrl('destination'));
+        $html .= sprintf('    <td><a href="%s">Level</a></td>', $this->getOrderingUrl('level'));
+        $html .= sprintf('    <td><a href="%s">Date</a></td>', $this->getOrderingUrl('date'));
+        $html .= sprintf('    <td><a href="%s">Message</a></td>', $this->getOrderingUrl('message'));
         $html .= '</tr>';
 
         $limitTextCss = ' style="max-width: 600px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;"';
@@ -410,6 +383,112 @@ class SettingsService
         $html .= '</table>';
 
         echo $html;
+    }
+
+    private function getCurrentQueryArgs(): array
+    {
+        $queryArgs = [
+            'filters' => [],
+            'limit' => 50,
+            'orderings' => [],
+        ];
+        if (isset($_GET)) {
+            foreach ($_GET as $key => $value) {
+                if (strpos($value, ',') !== false) {
+                    $valueCombos = explode(',', $value);
+                    foreach ($valueCombos as $valueCombo) {
+                        if (strpos($valueCombo, ':') !== false) {
+                            // Example: ?var=a:b,c:d
+                            $valueComboSplit = explode(':', $valueCombo);
+                            $queryArgs[$key][$valueComboSplit[0]] = $valueComboSplit[1];
+                        } else {
+                            // Example: ?var=a,b
+                            $queryArgs[$key][] = $valueCombo;
+                        }
+                    }
+                } else {
+                    if (strpos($value, ':') !== false) {
+                        // Example: ?var=a:b
+                        $valueSplit = explode(':', $value);
+                        $queryArgs[$key][$valueSplit[0]] = $valueSplit[1];
+                    } else {
+                        // Example: ?var=a
+                        $queryArgs[$key] = $value;
+                    }
+                }
+            }
+        }
+
+        // Force limit to be an int
+        $queryArgs['limit'] = (int) $queryArgs['limit'];
+
+        return $queryArgs;
+    }
+
+    private function buildUrl(array $additions = [], array $modifications = [], array $removals = []): string
+    {
+        $queryArgs = $this->getCurrentQueryArgs();
+        if ($additions) {
+            foreach ($additions as $additionKey => $additionValue) {
+                if (is_array($additionValue)) {
+                    $queryArgs[$additionKey] = array_merge($queryArgs[$additionKey], $additionValue);
+                } else {
+                    $queryArgs = array_merge($queryArgs, $additions);
+                }
+            }
+        }
+        if ($modifications) {
+            foreach ($modifications as $modificationKey => $modificationValue) {
+                if (is_array($modificationValue)) {
+                    $queryArgs[$modificationKey] = array_merge($queryArgs[$modificationKey], $modificationValue);
+                } else {
+                    $queryArgs = array_merge($queryArgs, $modifications);
+                }
+            }
+        }
+        if ($removals) {
+            foreach ($removals as $key => $value) {
+                if (is_array($value)) {
+                    if (empty($value)) {
+                        unset($queryArgs[$key]);
+                    } else {
+                        foreach ($value as $columnName => $columnValue) {
+                            if ($queryArgs[$key][$columnName] === $columnValue) {
+                                unset($queryArgs[$key][$columnName]);
+                            } else {
+                                $queryArgs[$key][$columnName] = str_replace(
+                                    $removals[$columnName][$columnValue],
+                                    '',
+                                    $queryArgs[$key][$columnName]
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    if (empty($value)) {
+                        unset($queryArgs[$key]);
+                    } else {
+                        $queryArgs[$key] = str_replace($removals[$key], '', $queryArgs[$key]);
+                    }
+                }
+            }
+        }
+
+        // Convert things like orderings with multiple columns to $orderings = 'column1=value1,column2=value2'
+        foreach ($queryArgs as $name => $queryArg) {
+            if (is_array($queryArg)) {
+               $queryStrings = [];
+               foreach ($queryArg as $key => $value) {
+                   $queryStrings[] = $key . ':' . $value;
+               }
+               $queryArgs[$name] = implode(',', $queryStrings);
+            }
+        }
+        $baseUrl = admin_url('admin.php');
+
+        $url = add_query_arg($queryArgs, $baseUrl);
+
+        return esc_url($url);
     }
 
     private function getOrderings()
@@ -441,21 +520,17 @@ class SettingsService
         return $this->orderings;
     }
 
-    private function getOrderingUrl(string $name, array $queryArgs)
+    private function getOrderingUrl(string $name)
     {
-        $orderings = $this->getOrderings();
-        if (array_key_exists($name, $orderings)) {
-            $orderings[$name] = strtolower($orderings[$name]) === 'asc' ? 'desc' : 'asc';
+        $currentQueryArgs = $this->getCurrentQueryArgs();
+        $currentOrderings = $currentQueryArgs['orderings'] ?? [];
+        if (array_key_exists($name, $currentOrderings)) {
+            $newDirection = strtolower($currentOrderings[$name]) === 'asc' ? 'desc' : 'asc';
+            $url = $this->buildUrl([], ['orderings' => [$name => $newDirection]]);
         } else {
-            $orderings[$name] = 'asc';
+            $url = $this->buildUrl(['orderings' => [$name => 'asc']]);
         }
 
-        $simplifiedOrderings = [];
-        foreach ($orderings as $column => $direction) {
-            $simplifiedOrderings[] = $column . ':' . $direction;
-        }
-        $queryArgs['orderings'] = implode(',', $simplifiedOrderings);
-
-        return esc_url(add_query_arg($queryArgs, admin_url('admin.php')));
+        return $url;
     }
 }
