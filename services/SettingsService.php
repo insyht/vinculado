@@ -5,7 +5,6 @@ namespace Vinculado\Services;
 use Vinculado\Config;
 use Vinculado\Helpers\SyncHelper;
 
-// todo Maybe split this up into different services that extend from this one, for every settings tab?
 class SettingsService
 {
     public const SETTING_MASTER_TOKEN      = 'iws_vinculado_master_token';
@@ -19,7 +18,6 @@ class SettingsService
     private $slugName = 'vinculado';
     private $icon = 'dashicons-rest-api';
     private $currentTab;
-    private $orderings = [];
     private $productService;
     private $config;
 
@@ -125,7 +123,6 @@ class SettingsService
 
     private function renderHtml()
     {
-        $showSaveButton = false;
         $callback = null;
         $settings = [];
 
@@ -143,7 +140,6 @@ class SettingsService
             );
 
             if ($sectionSlug === $this->currentTab) {
-                $showSaveButton = $section['showSaveButton'] ?? false;
                 $callback = $section['callback'] ?? null;
                 $settings = $section;
             }
@@ -489,35 +485,6 @@ class SettingsService
         $url = add_query_arg($queryArgs, $baseUrl);
 
         return esc_url($url);
-    }
-
-    private function getOrderings()
-    {
-        $availableOrderingColumns = ['origin', 'destination', 'level', 'date', 'message'];
-
-        if (!$this->orderings) {
-            $this->orderings = [];
-            if (isset($_GET['orderings'])) {
-                $splitOrderings = explode(',', $_GET['orderings']);
-                if ($splitOrderings === false) {
-                    return $this->orderings;
-                }
-                foreach ($splitOrderings as $ordering) {
-                    $splitKeyValue = explode(':', $ordering);
-                    if ($splitKeyValue === false ||
-                        !array_key_exists(0, $splitKeyValue) ||
-                        !array_key_exists(1, $splitKeyValue) ||
-                        !in_array(strtolower($splitKeyValue[0]), $availableOrderingColumns) ||
-                        !in_array(strtolower($splitKeyValue[1]), ['asc', 'desc'])
-                    ) {
-                        continue;
-                    }
-                    $this->orderings[$splitKeyValue[0]] = $splitKeyValue[1];
-                }
-            }
-        }
-
-        return $this->orderings;
     }
 
     private function getOrderingUrl(string $name)
