@@ -21,7 +21,6 @@ class SettingsService
     private $productService;
     private $config;
 
-
     public function __construct()
     {
         $this->config = (new Config())->get('settings');
@@ -375,11 +374,36 @@ class SettingsService
 
         $html .= '<br><table>';
         $html .= '<tr>';
-        $html .= sprintf('    <td><a href="%s">Origin</a></td>', $this->getOrderingUrl('origin'));
-        $html .= sprintf('    <td><a href="%s">Destination</a></td>', $this->getOrderingUrl('destination'));
-        $html .= sprintf('    <td><a href="%s">Level</a></td>', $this->getOrderingUrl('level'));
-        $html .= sprintf('    <td><a href="%s">Date</a></td>', $this->getOrderingUrl('date'));
-        $html .= sprintf('    <td><a href="%s">Message</a></td>', $this->getOrderingUrl('message'));
+        $html .= sprintf(
+            '    <td><a href="%s">%sOrigin%s</a></td>',
+            $this->getOrderingUrl('origin'),
+            array_key_exists('origin', $queryArgs['orderings']) ? '<strong>' : '',
+            array_key_exists('origin', $queryArgs['orderings']) ? '</strong>' : ''
+        );
+        $html .= sprintf(
+            '    <td><a href="%s">%sDestination%s</a></td>',
+            $this->getOrderingUrl('destination'),
+            array_key_exists('destination', $queryArgs['orderings']) ? '<strong>' : '',
+            array_key_exists('destination', $queryArgs['orderings']) ? '</strong>' : ''
+        );
+        $html .= sprintf(
+            '    <td><a href="%s">%sLevel%s</a></td>',
+            $this->getOrderingUrl('level'),
+            array_key_exists('level', $queryArgs['orderings']) ? '<strong>' : '',
+            array_key_exists('level', $queryArgs['orderings']) ? '</strong>' : ''
+        );
+        $html .= sprintf(
+            '    <td><a href="%s">%sDate%s</a></td>',
+            $this->getOrderingUrl('date'),
+            array_key_exists('date', $queryArgs['orderings']) ? '<strong>' : '',
+            array_key_exists('date', $queryArgs['orderings']) ? '</strong>' : ''
+        );
+        $html .= sprintf(
+            '    <td><a href="%s">%sMessage%s</a></td>',
+            $this->getOrderingUrl('message'),
+            array_key_exists('message', $queryArgs['orderings']) ? '<strong>' : '',
+            array_key_exists('message', $queryArgs['orderings']) ? '</strong>' : ''
+        );
         $html .= '</tr>';
 
         $limitTextCss = ' style="max-width: 600px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;"';
