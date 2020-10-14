@@ -21,13 +21,14 @@ class LogRepository extends AbstractRepository
      *      'level' => 'asc',
      *  ]
      *
-     * @param array $filters
-     * @param array $orderings
-     * @param int   $limit
+     * @param array     $filters
+     * @param string    $search
+     * @param array     $orderings
+     * @param int       $limit
      *
      * @return \Vinculado\Models\Log[]
      */
-    public function getLogs(array $filters = [], array $orderings = [], int $limit = 50): array
+    public function getLogs(array $filters = [], $search = '', array $orderings = [], int $limit = 50): array
     {
         $logs = [];
 
@@ -53,6 +54,22 @@ class LogRepository extends AbstractRepository
                 $variables[] = $filter['value'];
                 $addedFilters++;
             }
+        }
+
+        if ($search !== '') {
+            if (stripos($query, 'WHERE') === false) {
+                $query .= ' WHERE (';
+            } else {
+                $query .= ' AND (';
+            }
+
+            $columnsToSearchIn = ['origin', 'destination', 'message'];
+            $searchQueryParts = [];
+            foreach ($columnsToSearchIn as $column) {
+                $searchQueryParts[] = sprintf(' `%s` LIKE "%%%s%%" ', $column, $search);
+            }
+            $query .= implode(' OR ', $searchQueryParts);
+            $query .= ') ';
         }
 
         if ($orderings) {

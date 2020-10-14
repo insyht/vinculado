@@ -15,14 +15,15 @@ class LogService
     }
 
     /**
-     * @param array $filters
-     * @param array $orderings
-     * @param int   $limit
+     * @param array     $filters
+     * @param string    $search
+     * @param array     $orderings
+     * @param int       $limit
      *
      * @return Log[]
      */
-    public function getLogs(array $filters = [], array $orderings = [], int $limit = 50): array
+    public function getLogs(array $filters = [], string $search = '', array $orderings = [], int $limit = 50): array
     {
-        return $this->logRepository->getLogs($filters, $orderings, $limit);
+        return $this->logRepository->getLogs($filters, $search, $orderings, $limit);
     }
 }

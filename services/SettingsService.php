@@ -317,41 +317,61 @@ class SettingsService
         $limit = $queryArgs['limit'];
 
         $logService = new LogService();
-        $logs = $logService->getLogs($queryArgs['filters'], $queryArgs['orderings'], $queryArgs['limit']);
+        $logs = $logService->getLogs(
+            $queryArgs['filters'],
+            $queryArgs['search'],
+            $queryArgs['orderings'],
+            $queryArgs['limit']
+        );
 
         $html = '<br>';
 
-        $html .= '<label>Limit lines: </label>';
+        $html .= '<table>';
+        $html .= '<tr>';
+        $html .= '<td><label>Limit lines: </label></td>';
         $html .= sprintf(
-            '<a href="%s" class="button%s">10 lines</a> ',
+            '<td><a href="%s" class="button%s">10 lines</a></td>',
             $this->buildUrl([], ['limit' => 10]),
             $limit === 10 ? ' button-primary' : ''
         );
         $html .= sprintf(
-            '<a href="%s" class="button%s">20 lines</a> ',
+            '<td><a href="%s" class="button%s">20 lines</a></td>',
             $this->buildUrl([], ['limit' => 20]),
             $limit === 20 ? ' button-primary' : ''
         );
         $html .= sprintf(
-            '<a href="%s" class="button%s">50 lines</a> ',
+            '<td><a href="%s" class="button%s">50 lines</a></td>',
             $this->buildUrl([], ['limit' => 50]),
             $limit === 50 ? ' button-primary' : ''
         );
         $html .= sprintf(
-            '<a href="%s" class="button%s">100 lines</a> ',
+            '<td><a href="%s" class="button%s">100 lines</a></td>',
             $this->buildUrl([], ['limit' => 100]),
             $limit === 100 ? ' button-primary' : ''
         );
         $html .= sprintf(
-            '<a href="%s" class="button%s">250 lines</a><br>',
+            '<td><a href="%s" class="button%s">250 lines</a></td>',
             $this->buildUrl([], ['limit' => 250]),
             $limit === 250 ? ' button-primary' : ''
         );
+        $html .= '</tr>';
 
+        $html .= '<tr>';
+        $html .= '<td><label>Sorting: </label></td>';
         $html .= sprintf(
-            '<br><a href="%s" class="button button-primary">Reset sorting</a><br>',
+            '<td colspan="5"><a href="%s" class="button button-primary">Reset sorting</a></td>',
             $this->buildUrl([], [], ['orderings' => []])
         );
+        $html .= '</tr>';
+
+        $html .= '<tr>';
+        $html .= '<td><label>Search:</label></td>';
+        $html .= '<td colspan="4">';
+        $html .= $this->getLogSearchFormHtml();
+        $html .= '</td>';
+        $html .= '</tr>';
+
+        $html .= '</table><br>';
 
         $html .= '<br><table>';
         $html .= '<tr>';
@@ -385,8 +405,11 @@ class SettingsService
     {
         $queryArgs = [
             'filters' => [],
+            'search' => '',
             'limit' => 50,
             'orderings' => [],
+            'page' => '',
+            'tab' => '',
         ];
         if (isset($_GET)) {
             foreach ($_GET as $key => $value) {
@@ -409,7 +432,11 @@ class SettingsService
                         $queryArgs[$key][$valueSplit[0]] = $valueSplit[1];
                     } else {
                         // Example: ?var=a
-                        $queryArgs[$key] = $value;
+                        if (is_array($queryArgs[$key]) && $value === '') {
+                            $queryArgs[$key] = [];
+                        } else {
+                            $queryArgs[$key] = $value;
+                        }
                     }
                 }
             }
@@ -499,5 +526,38 @@ class SettingsService
         }
 
         return $url;
+    }
+
+    private function getLogSearchFormHtml(): string
+    {
+        $existingParams = $this->getCurrentQueryArgs();
+
+        $html = sprintf(
+            '<form method="get" action="%s">',
+            admin_url('admin.php')
+        );
+
+        $html .= sprintf('<input type="text" name="search" value="%s">', $existingParams['search'] ?? '');
+
+        $hiddenField = '<input type="hidden" name="%s" value="%s">';
+        foreach ($existingParams as $argumentName => $argumentValue) {
+            if ($argumentName === 'search') {
+                continue;
+            }
+            if (is_array($argumentValue)) {
+                $fieldValue = [];
+                foreach ($argumentValue as $innerArgumentName => $innerArgumentValue) {
+                    $fieldValue[] = sprintf('%s:%s', $innerArgumentName, $innerArgumentValue);
+                }
+                $html .= sprintf($hiddenField, $argumentName, implode(',', $fieldValue));
+            } else {
+                $html .= sprintf($hiddenField, $argumentName, $argumentValue);
+            }
+        }
+
+        $html .= '<input class="btn button-primary" type="submit" value="Search">';
+        $html .= '</form>';
+
+        return $html;
     }
 }
