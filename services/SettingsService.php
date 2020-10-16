@@ -4,6 +4,7 @@ namespace Vinculado\Services;
 
 use Vinculado\Config;
 use Vinculado\Helpers\SyncHelper;
+use Vinculado\Models\Log;
 
 class SettingsService
 {
@@ -311,7 +312,6 @@ class SettingsService
 
     private function renderSettingLogs(array $settings): void
     {
-        // todo Enable filtering functionality
         $queryArgs = $this->getCurrentQueryArgs();
         $limit = $queryArgs['limit'];
 
@@ -326,6 +326,7 @@ class SettingsService
         $html = '<br>';
 
         $html .= '<table>';
+
         $html .= '<tr>';
         $html .= '<td><label>Limit lines: </label></td>';
         $html .= sprintf(
@@ -349,7 +350,7 @@ class SettingsService
             $limit === 100 ? ' button-primary' : ''
         );
         $html .= sprintf(
-            '<td><a href="%s" class="button%s">250 lines</a></td>',
+            '<td colspan="4"><a href="%s" class="button%s">250 lines</a></td>',
             $this->buildUrl([], ['limit' => 250]),
             $limit === 250 ? ' button-primary' : ''
         );
@@ -358,17 +359,72 @@ class SettingsService
         $html .= '<tr>';
         $html .= '<td><label>Sorting: </label></td>';
         $html .= sprintf(
-            '<td colspan="5"><a href="%s" class="button button-primary">Reset sorting</a></td>',
+            '<td colspan="8"><a href="%s" class="button button-primary">Reset sorting</a></td>',
             $this->buildUrl([], [], ['orderings' => []])
         );
         $html .= '</tr>';
 
         $html .= '<tr>';
         $html .= '<td><label>Search:</label></td>';
-        $html .= '<td colspan="4">';
+        $html .= '<td colspan="8">';
         $html .= $this->getLogSearchFormHtml();
         $html .= '</td>';
         $html .= '</tr>';
+
+        $levelFilters = [];
+        if (array_key_exists('level', $queryArgs['filters'])) {
+            if (is_array($queryArgs['filters']['level'])) {
+                $levelFilters = $queryArgs['filters']['level'];
+            } else {
+                $levelFilters = explode(',', $queryArgs['filters']['level']);
+            }
+        }
+        $html .= '<tr>';
+        $html .= '<td><label>Only show this/these level(s): </label></td>';
+        $possibleLevels = [
+            Log::LEVEL_DEBUG,
+            Log::LEVEL_INFO,
+            Log::LEVEL_NOTICE,
+            Log::LEVEL_WARNING,
+            Log::LEVEL_ERROR,
+            Log::LEVEL_CRITICAL,
+            Log::LEVEL_ALERT,
+            Log::LEVEL_EMERGENCY,
+        ];
+        foreach ($possibleLevels as $possibleLevel) {
+            $remove = [];
+            $modification = [
+                'filters' => [
+                    'level' => '',
+                ],
+            ];
+            if (in_array($possibleLevel, $levelFilters)) {
+                // Remove the existing level filter
+                $removedLevel = $queryArgs['filters']['level'];
+                if (is_array($removedLevel)) {
+                    unset($removedLevel[array_search($possibleLevel, $removedLevel)]);
+                } else {
+                    $modification = [];
+                    $remove = ['filters' => ['level' => $possibleLevel]];
+                }
+
+                if (empty($remove)) {
+                    $modification['filters']['level'] = implode(',', $removedLevel);
+                }
+            } else {
+                // add new level filter
+                $modification['filters']['level'] = implode(',', array_merge($levelFilters, [$possibleLevel]));
+            }
+
+            $html .= sprintf(
+                '<td><a href="%s" class="button%s" style="width: 100%%; text-align: center;">%s</a></td>',
+                $this->buildUrl([], $modification, $remove),
+                in_array($possibleLevel, $levelFilters) ? ' button-primary' : '',
+                $possibleLevel
+            );
+        }
+        $html .= '</tr>';
+
 
         $html .= '</table><br>';
 
@@ -439,14 +495,21 @@ class SettingsService
             foreach ($_GET as $key => $value) {
                 if (strpos($value, ',') !== false) {
                     $valueCombos = explode(',', $value);
-                    foreach ($valueCombos as $valueCombo) {
-                        if (strpos($valueCombo, ':') !== false) {
-                            // Example: ?var=a:b,c:d
-                            $valueComboSplit = explode(':', $valueCombo);
-                            $queryArgs[$key][$valueComboSplit[0]] = $valueComboSplit[1];
-                        } else {
-                            // Example: ?var=a,b
-                            $queryArgs[$key][] = $valueCombo;
+                    $splitByColon = explode(':', $value);
+
+                    if (count($splitByColon) === 2) {
+                        // Example: ?var=a:b,c,d
+                        $queryArgs[$key][$splitByColon[0]] = explode(',', $splitByColon[1]);
+                    } else {
+                        foreach ($valueCombos as $valueCombo) {
+                            if (strpos($valueCombo, ':') !== false) {
+                                // Example: ?var=a:b,c:d
+                                $valueComboSplit = explode(':', $valueCombo);
+                                $queryArgs[$key][$valueComboSplit[0]] = $valueComboSplit[1];
+                            } else {
+                                // Example: ?var=a,b
+                                $queryArgs[$key][] = $valueCombo;
+                            }
                         }
                     }
                 } else {
@@ -502,9 +565,12 @@ class SettingsService
                         foreach ($value as $columnName => $columnValue) {
                             if ($queryArgs[$key][$columnName] === $columnValue) {
                                 unset($queryArgs[$key][$columnName]);
+                                if (empty($queryArgs[$key])) {
+                                    unset($queryArgs[$key]);
+                                }
                             } else {
                                 $queryArgs[$key][$columnName] = str_replace(
-                                    $removals[$columnName][$columnValue],
+                                    $removals[$key][$columnName][$columnValue],
                                     '',
                                     $queryArgs[$key][$columnName]
                                 );
@@ -526,7 +592,12 @@ class SettingsService
             if (is_array($queryArg)) {
                $queryStrings = [];
                foreach ($queryArg as $key => $value) {
-                   $queryStrings[] = $key . ':' . $value;
+                   if (is_array($value)) {
+                        $queryStrings[] = $key . ':' . implode(',', $value);
+                   } else {
+                       $queryStrings[] = $key . ':' . $value;
+
+                   }
                }
                $queryArgs[$name] = implode(',', $queryStrings);
             }
@@ -571,7 +642,11 @@ class SettingsService
             if (is_array($argumentValue)) {
                 $fieldValue = [];
                 foreach ($argumentValue as $innerArgumentName => $innerArgumentValue) {
-                    $fieldValue[] = sprintf('%s:%s', $innerArgumentName, $innerArgumentValue);
+                    if (is_array($innerArgumentValue)) {
+                        $fieldValue[] = sprintf('%s:%s', $innerArgumentName, implode(',', $innerArgumentValue));
+                    } else {
+                        $fieldValue[] = sprintf('%s:%s', $innerArgumentName, $innerArgumentValue);
+                    }
                 }
                 $html .= sprintf($hiddenField, $argumentName, implode(',', $fieldValue));
             } else {

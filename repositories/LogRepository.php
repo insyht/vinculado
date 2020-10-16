@@ -36,24 +36,30 @@ class LogRepository extends AbstractRepository
         $query = 'SELECT `origin`, `destination`, `level`, `date`, `message` FROM `vinculado_logs`';
 
         if ($filters) {
-            $query .= ' WHERE';
+            $query .= ' WHERE (';
             $addedFilters = 0;
-            foreach ($filters as $i => $filter) {
-                if (!array_key_exists('column', $filter) ||
-                    !array_key_exists('sign', $filter) ||
-                    !array_key_exists('value', $filter)
-                ) {
-                    continue;
-                }
+            foreach ($filters as $column => $values) {
+                if (is_array($values)) {
+                    foreach ($values as $value) {
+                        if ($addedFilters > 0) {
+                            $query .= ' OR ';
+                        }
 
-                if ($addedFilters > 0) {
-                    $query .= ' AND ';
-                }
+                        $query .= sprintf(' `%s` = %%s ', $column);
+                        $variables[] = $value;
+                        $addedFilters++;
+                    }
+                } else {
+                    if ($addedFilters > 0) {
+                        $query .= ' OR ';
+                    }
 
-                $query .= sprintf(' `%s` %s %%s ', $filter['column'], $filter['sign']);
-                $variables[] = $filter['value'];
-                $addedFilters++;
+                    $query .= sprintf(' `%s` = %%s ', $column);
+                    $variables[] = $values;
+                    $addedFilters++;
+                }
             }
+            $query .= ' ) ';
         }
 
         if ($search !== '') {
