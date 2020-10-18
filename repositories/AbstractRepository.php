@@ -2,6 +2,10 @@
 
 namespace Vinculado\Repositories;
 
+/**
+ * Class AbstractRepository
+ * @package Vinculado
+ */
 class AbstractRepository
 {
     protected $database;

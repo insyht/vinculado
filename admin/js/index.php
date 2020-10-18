@@ -1,2 +1,3 @@
 <?php
+
 die('Not allowed');

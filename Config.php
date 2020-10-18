@@ -4,6 +4,10 @@ namespace Vinculado;
 
 use Vinculado\Services\SettingsService;
 
+/**
+ * Class Config
+ * @package Vinculado
+ */
 class Config
 {
     private $configs = [

@@ -4,6 +4,10 @@ namespace Vinculado\Repositories;
 
 use Vinculado\Models\Log;
 
+/**
+ * Class LogRepository
+ * @package Vinculado
+ */
 class LogRepository extends AbstractRepository
 {
     /**

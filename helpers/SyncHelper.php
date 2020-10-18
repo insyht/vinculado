@@ -4,6 +4,10 @@ namespace Vinculado\Helpers;
 
 use Vinculado\Services\SettingsService;
 
+/**
+ * Class SyncHelper
+ * @package Vinculado
+ */
 class SyncHelper
 {
     /**

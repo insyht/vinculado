@@ -6,6 +6,10 @@ use Vinculado\Config;
 use Vinculado\Helpers\SyncHelper;
 use Vinculado\Models\Log;
 
+/**
+ * Class SettingsService
+ * @package Vinculado
+ */
 class SettingsService
 {
     public const SETTING_MASTER_TOKEN      = 'iws_vinculado_master_token';
@@ -37,12 +41,12 @@ class SettingsService
     {
         $amountOfSlaves = (int) get_option('iws_vinculado_slaves_count', 0);
         if ($amountOfSlaves !== false) {
-            for ($i = 1; $i <= $amountOfSlaves; $i++) {
+            for ($iterator = 1; $iterator <= $amountOfSlaves; $iterator++) {
                 $slaveTokenSetting = [
-                    sprintf('Slave %d token', $i) => [
-                        'name' => sprintf('iws_vinculado_slave_%d_token', $i),
+                    sprintf('Slave %d token', $iterator) => [
+                        'name' => sprintf('iws_vinculado_slave_%d_token', $iterator),
                         'type' => 'string',
-                        'description' => sprintf('Token of slave shop %d', $i),
+                        'description' => sprintf('Token of slave shop %d', $iterator),
                         'default' => '',
                         'callback' => 'renderSettingSlaveToken',
                     ]
@@ -55,10 +59,10 @@ class SettingsService
         }
 
         // Check if there are more slave tokens set than $amountOfSlaves. If so, delete them
-        $checkExcessSlavesIterator = $amountOfSlaves + 1;
-        while (get_option(sprintf('iws_vinculado_slave_%d_token', $checkExcessSlavesIterator), false) !== false) {
-            delete_option(sprintf('iws_vinculado_slave_%d_token', $checkExcessSlavesIterator));
-            $checkExcessSlavesIterator++;
+        $checkExcessSlavesI = $amountOfSlaves + 1;
+        while (get_option(sprintf('iws_vinculado_slave_%d_token', $checkExcessSlavesI), false) !== false) {
+            delete_option(sprintf('iws_vinculado_slave_%d_token', $checkExcessSlavesI));
+            $checkExcessSlavesI++;
         }
     }
 
@@ -103,7 +107,6 @@ class SettingsService
                     $sectionSlug
                 );
             }
-
         }
     }
 
@@ -115,7 +118,7 @@ class SettingsService
             'manage_options',
             $this->slugName,
             function () {
-              $this->renderHtml();
+                $this->renderHtml();
             },
             $this->icon
         );
@@ -126,8 +129,8 @@ class SettingsService
         $callback = null;
         $settings = [];
 
-        echo '<div class="wrap">'.
-                '<h1>Vinculado Product Sync instellingen</h1>'.
+        echo '<div class="wrap">' .
+                '<h1>Vinculado Product Sync instellingen</h1>' .
                 '<h2 class="nav-tab-wrapper">';
 
         $urlTemplate = '<a href="?page=vinculado&tab=%s" class="nav-tab%s">%s</a>';
@@ -154,7 +157,7 @@ class SettingsService
         echo '</div>';
     }
 
-    private function renderDefaultSettingsPage(array $settings)
+    private function renderDefaultSettingsPage(array $settings): void
     {
         $formUrl = esc_url(add_query_arg('tab', $this->currentTab, admin_url('options.php')));
 
@@ -168,7 +171,7 @@ class SettingsService
         echo '</form>';
     }
 
-    private function renderSettingApiToken(array $settings)
+    private function renderSettingApiToken(array $settings): void
     {
         if (!get_option($settings['name'], '')) {
             SyncHelper::generateApiToken();
@@ -183,13 +186,13 @@ class SettingsService
         );
     }
 
-    private function renderSettingMasterToken(array $settings)
+    private function renderSettingMasterToken(array $settings): void
     {
         $htmlTemplate = '<input '.
-                            'type="text" '.
-                            'name="%s" '.
-                            'value="%s" '.
-                            'class="regular-text"'.
+                            'type="text" ' .
+                            'name="%s" ' .
+                            'value="%s" ' .
+                            'class="regular-text"' .
                         '>';
 
         if ($settings['description']) {
@@ -203,13 +206,13 @@ class SettingsService
         );
     }
 
-    private function renderSettingSlaveToken(array $settings)
+    private function renderSettingSlaveToken(array $settings): void
     {
-        $htmlTemplate = '<input '.
-                            'type="text" '.
-                            'name="%s" '.
-                            'value="%s" '.
-                            'class="regular-text"'.
+        $htmlTemplate = '<input ' .
+                            'type="text" ' .
+                            'name="%s" ' .
+                            'value="%s" ' .
+                            'class="regular-text"' .
                         '>';
 
         if ($settings['description']) {
@@ -223,19 +226,19 @@ class SettingsService
         );
     }
 
-    private function renderSettingSlavesCount(array $settings)
+    private function renderSettingSlavesCount(array $settings): void
     {
         $htmlTemplate = '<select name="%s">%s</select>';
 
         $optionsHtml = '';
 
         $optionHtmlTemplate = '<option value="%d"%s>%d</option>';
-        for ($i = 0; $i <= 5; $i++) {
+        for ($iterator = 0; $iterator <= 5; $iterator++) {
             $optionsHtml .= sprintf(
                 $optionHtmlTemplate,
-                $i,
-                get_option($settings['name'], 0) === (string)$i ? ' selected="selected"' : '',
-                $i
+                $iterator,
+                get_option($settings['name'], 0) === (string)$iterator ? ' selected="selected"' : '',
+                $iterator
             );
         }
 
@@ -246,7 +249,7 @@ class SettingsService
         );
     }
 
-    private function renderSettingExcludeProducts(array $settings)
+    private function renderSettingExcludeProducts(array $settings): void
     {
         $products = $this->productService->getAllProducts();
         $selectedProducts = get_option($settings['name']);
@@ -278,7 +281,7 @@ class SettingsService
         );
     }
 
-    private function renderSettingIncludeProducts(array $settings)
+    private function renderSettingIncludeProducts(array $settings): void
     {
         $products = $this->productService->getAllProducts();
         $selectedProducts = get_option($settings['name']);
@@ -512,19 +515,15 @@ class SettingsService
                             }
                         }
                     }
+                } elseif (strpos($value, ':') !== false) {
+                    // Example: ?var=a:b
+                    $valueSplit = explode(':', $value);
+                    $queryArgs[$key][$valueSplit[0]] = $valueSplit[1];
+                } elseif (is_array($queryArgs[$key]) && $value === '') {
+                    // Example: ?var=a
+                    $queryArgs[$key] = [];
                 } else {
-                    if (strpos($value, ':') !== false) {
-                        // Example: ?var=a:b
-                        $valueSplit = explode(':', $value);
-                        $queryArgs[$key][$valueSplit[0]] = $valueSplit[1];
-                    } else {
-                        // Example: ?var=a
-                        if (is_array($queryArgs[$key]) && $value === '') {
-                            $queryArgs[$key] = [];
-                        } else {
-                            $queryArgs[$key] = $value;
-                        }
-                    }
+                    $queryArgs[$key] = $value;
                 }
             }
         }
@@ -577,12 +576,10 @@ class SettingsService
                             }
                         }
                     }
+                } elseif (empty($value)) {
+                    unset($queryArgs[$key]);
                 } else {
-                    if (empty($value)) {
-                        unset($queryArgs[$key]);
-                    } else {
-                        $queryArgs[$key] = str_replace($removals[$key], '', $queryArgs[$key]);
-                    }
+                    $queryArgs[$key] = str_replace($removals[$key], '', $queryArgs[$key]);
                 }
             }
         }
@@ -590,16 +587,15 @@ class SettingsService
         // Convert things like orderings with multiple columns to $orderings = 'column1=value1,column2=value2'
         foreach ($queryArgs as $name => $queryArg) {
             if (is_array($queryArg)) {
-               $queryStrings = [];
-               foreach ($queryArg as $key => $value) {
-                   if (is_array($value)) {
+                $queryStrings = [];
+                foreach ($queryArg as $key => $value) {
+                    if (is_array($value)) {
                         $queryStrings[] = $key . ':' . implode(',', $value);
-                   } else {
-                       $queryStrings[] = $key . ':' . $value;
-
-                   }
-               }
-               $queryArgs[$name] = implode(',', $queryStrings);
+                    } else {
+                        $queryStrings[] = $key . ':' . $value;
+                    }
+                }
+                $queryArgs[$name] = implode(',', $queryStrings);
             }
         }
         $baseUrl = admin_url('admin.php');
@@ -609,7 +605,7 @@ class SettingsService
         return esc_url($url);
     }
 
-    private function getOrderingUrl(string $name)
+    private function getOrderingUrl(string $name): string
     {
         $currentQueryArgs = $this->getCurrentQueryArgs();
         $currentOrderings = $currentQueryArgs['orderings'] ?? [];

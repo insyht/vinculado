@@ -5,6 +5,10 @@ namespace Vinculado\Services;
 use Vinculado\Models\Log;
 use Vinculado\Repositories\LogRepository;
 
+/**
+ * Class LogService
+ * @package Vinculado
+ */
 class LogService
 {
     private $logRepository;

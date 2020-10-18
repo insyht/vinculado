@@ -6,6 +6,10 @@ use DateTime;
 use Vinculado\Repositories\AbstractRepository;
 use Vinculado\Repositories\LogRepository;
 
+/**
+ * Class Log
+ * @package Vinculado
+ */
 class Log extends AbstractModel
 {
     public const LEVEL_EMERGENCY = 'emergency';
@@ -28,6 +32,11 @@ class Log extends AbstractModel
     /** @var string */
     private $message;
 
+    /**
+     * @param array $databaseData
+     *
+     * @throws \Exception
+     */
     public function read(array $databaseData): void
     {
         $this->origin = $databaseData['origin'];

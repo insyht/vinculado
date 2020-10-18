@@ -1,4 +1,5 @@
 <?php
+
 spl_autoload_register(
     function ($fqn) {
         $classPath = explode('\\', $fqn);
@@ -10,11 +11,11 @@ spl_autoload_register(
         $baseFilePath = __DIR__;
         $filePath = $baseFilePath;
 
-        foreach ($classPath as $i => $directoryOrFile) {
-            if (count($classPath) > ($i + 1)) {
+        foreach ($classPath as $index => $directoryOrFile) {
+            if (count($classPath) > ($index + 1)) {
                 $filePath .= '/' . strtolower($directoryOrFile);
             } else {
-                $filePath .= '/'. $directoryOrFile . '.php';
+                $filePath .= '/' . $directoryOrFile . '.php';
             }
         }
 
