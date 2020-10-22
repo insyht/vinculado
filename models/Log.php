@@ -39,6 +39,7 @@ class Log extends AbstractModel
      */
     public function read(array $databaseData): void
     {
+        $this->id = $databaseData['id'];
         $this->origin = $databaseData['origin'];
         $this->destination = $databaseData['destination'];
         $this->level = $databaseData['level'];

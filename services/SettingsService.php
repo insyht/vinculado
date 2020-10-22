@@ -5,6 +5,7 @@ namespace Vinculado\Services;
 use Vinculado\Config;
 use Vinculado\Helpers\SyncHelper;
 use Vinculado\Models\Log;
+use Vinculado\Repositories\LogRepository;
 
 /**
  * Class SettingsService
@@ -316,6 +317,17 @@ class SettingsService
     private function renderSettingLogs(array $settings): void
     {
         $queryArgs = $this->getCurrentQueryArgs();
+
+        if (array_key_exists('delete', $queryArgs)) {
+            $logRepository = new LogRepository();
+            if ($queryArgs['delete'] === 'all') {
+                $logRepository->truncate();
+            } else {
+                $logRepository->delete($queryArgs['delete']);
+            }
+            unset($queryArgs['delete']);
+        }
+
         $limit = $queryArgs['limit'];
 
         $logService = new LogService();
@@ -428,6 +440,13 @@ class SettingsService
         }
         $html .= '</tr>';
 
+        $html .= '<tr>';
+        $html .= '<td><label>Delete all logs:</label></td>';
+        $html .= sprintf(
+            '<td colspan="8"><a href="%s" class="button">Truncate</a></td>',
+            $this->buildUrl(['delete' => 'all'])
+        );
+        $html .= '</tr>';
 
         $html .= '</table><br>';
 
@@ -463,19 +482,29 @@ class SettingsService
             array_key_exists('message', $queryArgs['orderings']) ? '<strong>' : '',
             array_key_exists('message', $queryArgs['orderings']) ? '</strong>' : ''
         );
+        $html .= '<td>Actions</td>';
         $html .= '</tr>';
 
         $limitTextCss = ' style="max-width: 600px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;"';
+        $rowHtml = '<tr>
+                    <td>%s</td>
+                    <td>%s</td>
+                    <td>%s</td>
+                    <td>%s</td>
+                    <td title="%s"%s>%s</td>
+                    <td><a href="%s">Delete</a></td>
+                    </tr>';
         foreach ($logs as $log) {
             $html .= sprintf(
-                '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td title="%s"%s>%s</td></tr>',
+                $rowHtml,
                 $log->getOrigin(),
                 $log->getDestination(),
                 $log->getLevel(),
                 $log->getDate()->format('d-m-Y H:i:s'),
                 $log->getMessage(),
                 $limitTextCss,
-                $log->getMessage()
+                $log->getMessage(),
+                $this->buildUrl(['delete' => $log->getId()])
             );
         }
 
@@ -493,6 +522,7 @@ class SettingsService
             'orderings' => [],
             'page' => '',
             'tab' => '',
+            'delete' => 0,
         ];
         if (isset($_GET)) {
             foreach ($_GET as $key => $value) {

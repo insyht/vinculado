@@ -37,7 +37,7 @@ class LogRepository extends AbstractRepository
         $logs = [];
 
         $variables = [];
-        $query = 'SELECT `origin`, `destination`, `level`, `date`, `message` FROM `vinculado_logs`';
+        $query = 'SELECT `id`, `origin`, `destination`, `level`, `date`, `message` FROM `vinculado_logs`';
 
         if ($filters) {
             $query .= ' WHERE (';
@@ -113,5 +113,19 @@ class LogRepository extends AbstractRepository
         }
 
         return $logs;
+    }
+
+    public function delete(int $id)
+    {
+        // todo Check if user has the rights to do this
+        $queryTemplate = 'DELETE FROM `vinculado_logs` WHERE `id` = %d LIMIT 1;';
+       $query = sprintf($queryTemplate, $id);
+       $this->database->query($query);
+    }
+
+    public function truncate()
+    {
+        // todo Check if user has the rights to do this
+        $this->database->query('TRUNCATE `vinculado_logs`;');
     }
 }
