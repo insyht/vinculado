@@ -4,7 +4,6 @@
 * Plugin Name: Vinculado Product Sync
 * Plugin URI: https://insyht.nl/vinculado
 * Description: Sync products across multiple Woocommerce stores.
-* Version: 1.0.0
 * Author: IWS (Insyht Web Solutions)
 * Author URI: https://www.insyht.nl
 * Developer: Jordy Thijs (IWS)
@@ -31,6 +30,8 @@ add_action('admin_menu', [$settingsService, 'setupSettings']);
 add_action('admin_init', [$settingsService, 'renderSettings']);
 
 register_activation_hook(__FILE__, 'databaseSetup');
+
+\Vinculado\Services\UpdaterService::runUpdater();
 
 function databaseSetup()
 {
