@@ -12,7 +12,7 @@ class ProductService
 {
     private $products = [];
 
-    public function getAllProducts(): array
+    public function getAllProducts(array $data): array
     {
         if (!$this->products) {
             $args = [
@@ -31,5 +31,4 @@ class ProductService
 
         return $this->products;
     }
-
 }

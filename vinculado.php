@@ -21,14 +21,38 @@
 require_once 'safetychecks.php';
 require_once 'autoload.php';
 
+use Vinculado\Services\ApiService;
 use Vinculado\Services\SettingsService;
 
 
 $settingsService = new SettingsService();
+$apiService = new ApiService();
 
 add_action('admin_menu', [$settingsService, 'setupSettings']);
 add_action('admin_init', [$settingsService, 'renderSettings']);
-
+add_action(
+    'rest_api_init',
+    function () use ($apiService) {
+        register_rest_route(
+            'iws-vinculado',
+            '/v1',
+            [
+                'methods' => WP_REST_Server::CREATABLE,
+                'callback' => [$apiService, 'entrance'],
+                'args' => [
+                    'method' => [
+                        'validate_callback' => function ($method, $request) use ($apiService) {
+                            return $apiService->isValidData($request);
+                        },
+                    ],
+                ],
+                'permission_callback' => function ($request) use ($apiService) {
+                    return $apiService->isAllowed($request);
+                }
+            ]
+        );
+    }
+);
 register_activation_hook(__FILE__, 'databaseSetup');
 
 \Vinculado\Services\UpdaterService::runUpdater();
