@@ -2,14 +2,14 @@
 
 namespace Vinculado\Services;
 
-use Vinculado\Services\Api\ProductService;
+use Vinculado\Services\Api\Slave\ProductMasterService;
 use WP_REST_Request;
 
 class ApiService
 {
     private $classMap = [
-        'ProductService' => [
-            'fqn' => ProductService::class,
+        'ProductSlaveService' => [
+            'fqn' => ProductMasterService::class,
             'methods' => ['getAllProducts'],
         ],
     ];

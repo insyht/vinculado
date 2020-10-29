@@ -1,13 +1,14 @@
 <?php
 
-namespace Vinculado\Services\Api;
+namespace Vinculado\Services\Api\Slave;
 
+use Vinculado\Services\Api\Shared\ApiServiceInterface;
 use WP_HTTP_Response;
 use WP_REST_Response;
 
 /**
- * Class AbstractApiService
- * @package Vinculado\Services\Api
+ * Class AbstractApiSlaveService
+ * @package Vinculado
  *
  *Rules:
  * - Every public API method should be entered in ApiService::$classMap
@@ -15,13 +16,11 @@ use WP_REST_Response;
  * - Every public API method must change $this->response to fit the response
  * - Every public API method must return $this->respond() *
  */
-abstract class AbstractApiService implements ApiServiceInterface
+abstract class AbstractApiSlaveService implements ApiSlaveServiceInterface
 {
-    public const ERRORS_UNKNOWN = 'Unknown error';
-
     protected $response = [
         'success' => false,
-        'error' => self::ERRORS_UNKNOWN,
+        'error' => ApiServiceInterface::ERRORS_UNKNOWN,
         'headers' => [
             'Content-type: application/json; charset=utf-8',
         ],

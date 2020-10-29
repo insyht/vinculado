@@ -1,15 +1,15 @@
 <?php
 
-namespace Vinculado\Services\Api;
+namespace Vinculado\Services\Api\Slave;
 
 use WP_Query;
 use WP_REST_Response;
 
 /**
- * Class ProductService
+ * Class ProductSlaveService
  * @package Vinculado
  */
-class ProductService extends AbstractApiService
+class ProductSlaveService extends AbstractApiSlaveService
 {
     public function getAllProducts(array $data): WP_REST_Response
     {
