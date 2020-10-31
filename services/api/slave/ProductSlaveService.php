@@ -2,7 +2,6 @@
 
 namespace Vinculado\Services\Api\Slave;
 
-use WP_Query;
 use WP_REST_Response;
 
 /**
@@ -11,23 +10,22 @@ use WP_REST_Response;
  */
 class ProductSlaveService extends AbstractApiSlaveService
 {
-    public function getAllProducts(array $data): WP_REST_Response
+    public function updatePrice(array $data): WP_REST_Response
     {
-        $products = [];
-        $args = [
-            'post_type' => 'product',
-        ];
-        $loop = new WP_Query($args);
-        while ($loop->have_posts()) {
-            $loop->the_post();
-            global $product;
-            $products[] = $product;
-        }
-        wp_reset_query();
+        $product = wc_get_product($data['id']);
+        $product->set_price($data['price']);
+        $product->set_regular_price($data['price']);
+        $product->save();
 
-        $this->response['success'] = true;
-        $this->response['error'] = null;
-        $this->response['message'] = json_encode($products);
+        $updatedProduct = wc_get_product($data['id']);
+        if ($updatedProduct->get_price() === $data['price']) {
+            $this->response['success'] = true;
+            $this->response['error'] = null;
+        } else {
+            $this->response['error'] = sprintf('Could not update price for product with id %d', $data['id']);
+        }
+
+        $this->response['message'] = base64_encode(json_encode($updatedProduct->get_data()));
 
         return $this->respond();
     }

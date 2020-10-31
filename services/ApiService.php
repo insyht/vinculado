@@ -2,26 +2,24 @@
 
 namespace Vinculado\Services;
 
-use Vinculado\Services\Api\Slave\ProductMasterService;
+use Vinculado\Services\Api\Slave\ProductSlaveService;
 use WP_REST_Request;
 
 class ApiService
 {
     private $classMap = [
         'ProductSlaveService' => [
-            'fqn' => ProductMasterService::class,
-            'methods' => ['getAllProducts'],
+            'fqn' => ProductSlaveService::class,
+            'methods' => ['updatePrice'],
         ],
     ];
 
     public function entrance(WP_REST_Request $request)
     {
-        $parameters = $request->get_json_params();
-
+        $parameters = json_decode(html_entity_decode(urldecode($request->get_body())), true);
         $data = $parameters['data'];
         $providedClass = $parameters['service'];
         $providedMethod = $parameters['endpoint'];
-
         $fqn = $this->classMap[$providedClass]['fqn'];
         $instance = new $fqn();
         $returnValue = $instance->{$providedMethod}($data);
