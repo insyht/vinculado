@@ -2,6 +2,7 @@
 
 namespace Vinculado\Services\Api\Master;
 
+use Vinculado\Services\LogService;
 use WC_Product;
 use WP_REST_Request;
 
@@ -11,7 +12,7 @@ use WP_REST_Request;
  */
 class ProductMasterService extends AbstractApiMasterService
 {
-    public function updatePrice(WC_Product $product)
+    public function updatePrice(WC_Product $product): bool
     {
         $request = new WP_REST_Request();
         $attributes = [
@@ -20,9 +21,16 @@ class ProductMasterService extends AbstractApiMasterService
         ];
         $request->set_attributes($attributes);
         $response = $this->request($request);
-        $responseData = $response->get_data();
-        $a = 0;
+        $errors = $this->getErrors($response);
 
+        if (!empty($errors)) {
+            foreach ($errors as $error) {
+                LogService::log($error);
+            }
+
+            return false;
+        }
+
+        return true;
     }
-
 }

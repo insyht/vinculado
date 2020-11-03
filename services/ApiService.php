@@ -7,6 +7,10 @@ use WP_REST_Request;
 
 class ApiService
 {
+    const ERROR_INVALID_MASTER_PARAMETERS = 'Error: Got invalid parameters from master request';
+    const ERROR_INVALID_SLAVE_RESPONSE_NO_BODY = 'Error: No body in slave response';
+    const ERROR_INVALID_SLAVE_RESPONSE_NO_RESPONSE = 'Error: No response from slave';
+
     private $classMap = [
         'ProductSlaveService' => [
             'fqn' => ProductSlaveService::class,

@@ -2,7 +2,9 @@
 
 namespace Vinculado\Services\Api\Master;
 
+use Vinculado\Models\Log;
 use Vinculado\Services\Api\Slave\Slave;
+use Vinculado\Services\ApiService;
 use Vinculado\Services\SettingsService;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -13,7 +15,9 @@ use WP_REST_Response;
  *
  *Rules:
  * - Every public Master API request must be run through AbstractApiMasterService::request() or an extension of it
+ * - Every public Master API request will return either true (if the request was successful) or false (if unsuccessful)
  * - Every public Master API method will get a WP_REST_Response object back with responses from every connected slave
+ * - If a request fails, the response object will contain one or more error messages
  */
 abstract class AbstractApiMasterService implements ApiMasterServiceInterface
 {
@@ -24,6 +28,20 @@ abstract class AbstractApiMasterService implements ApiMasterServiceInterface
         $requestService = end($requestServiceSplit);
         $requestMethod = $this->getCallingMethod();
 
+        $response = new WP_REST_Response();
+
+        $slaves = $this->getSlaves();
+        if (!$requestServiceFQN || !$requestService || !$requestMethod) {
+            $log = new Log();
+            $log->setOrigin($this->getBaseUrl())
+                ->setDestination($this->getBaseUrl())
+                ->setLevel(Log::LEVEL_ERROR)
+                ->setMessage(ApiService::ERROR_INVALID_MASTER_PARAMETERS);
+            $response->set_data(['errors' => [$log]]);
+
+            return $response;
+        }
+
         $data = [
             'service' => str_replace('Master', 'Slave', $requestService),
             'endpoint' => $requestMethod,
@@ -32,21 +50,68 @@ abstract class AbstractApiMasterService implements ApiMasterServiceInterface
 
         $responses = [];
         $urlTemplate = '%s/wp-json/iws-vinculado/v1?apiKey=%s';
-        foreach ($this->getSlaves() as $slave) {
+        $errors = [];
+        foreach ($slaves as $slave) {
             $fullUrl = sprintf($urlTemplate, $slave->getUrl(), $slave->getApiKey());
-            $response = wp_remote_post($fullUrl, ['body' => json_encode($data)]);
-            $responses[$slave->getApiKey()] = $this->processResponse($response);
+            $slaveResponse = wp_remote_post($fullUrl, ['body' => json_encode($data)]);
+            if (!array_key_exists('body', $slaveResponse)) {
+                $log = new Log();
+                $log->setOrigin($this->getBaseUrl())
+                    ->setDestination($slave->getUrl())
+                    ->setLevel(Log::LEVEL_ERROR)
+                    ->setMessage(ApiService::ERROR_INVALID_SLAVE_RESPONSE_NO_BODY);
+                $errors[] = $log;
+                continue;
+            }
+            $processedResponse = $this->processResponse($slaveResponse);
+            if (empty($processedResponse)) {
+                $log = new Log();
+                $log->setOrigin($this->getBaseUrl())
+                    ->setDestination($slave->getUrl())
+                    ->setLevel(Log::LEVEL_ERROR)
+                    ->setMessage(ApiService::ERROR_INVALID_SLAVE_RESPONSE_NO_RESPONSE);
+                $errors[] = $log;
+                continue;
+            }
+            if (
+                array_key_exists('data', $processedResponse) &&
+                array_key_exists('status', $processedResponse['data']) &&
+                $processedResponse['data']['status'] === 401
+            ) {
+                $log = new Log();
+                $log->setOrigin($this->getBaseUrl())
+                    ->setDestination($slave->getUrl())
+                    ->setLevel(Log::LEVEL_ERROR)
+                    ->setMessage($processedResponse['message']);
+                $errors[] = $log;
+                continue;
+            }
+            $responses[$slave->getApiKey()] = $processedResponse;
         }
 
-        $response = new WP_REST_Response();
-        $response->set_data($responses);
+        $response->set_data(array_merge($responses, ['errors' => $errors]));
 
         return $response;
     }
 
     public function processResponse(array $response): array
     {
-        return json_decode(base64_decode($response['body']), true);
+        if (!array_key_exists('body', $response)) {
+            return [];
+        }
+        if (strpos($response['body'], '}') === false) {
+            $step1 = base64_decode($response['body']);
+        } else {
+            $step1 = $response['body'];
+        }
+        $step2 = json_decode($step1, true);
+        if ($step2 === null) {
+            $processedResponse = [];
+        } else {
+            $processedResponse = $step2;
+        }
+
+        return $processedResponse;
     }
 
     protected function getCallingMethod(): ?string
@@ -78,5 +143,23 @@ abstract class AbstractApiMasterService implements ApiMasterServiceInterface
         }
 
         return $slaves;
+    }
+
+    protected function getErrors(WP_REST_Response $response): array
+    {
+        $errors = [];
+
+        $responseData = $response->get_data();
+
+        if (array_key_exists('errors', $responseData) && !empty($responseData['errors'])) {
+            $errors = $responseData['errors'];
+        }
+
+        return $errors;
+    }
+
+    public function getBaseUrl(): string
+    {
+        return get_site_url();
     }
 }
