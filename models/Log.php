@@ -31,6 +31,8 @@ class Log extends AbstractModel
     private $date;
     /** @var string */
     private $message;
+    /** @var string */
+    private $backtrace;
 
     /**
      * @param array $databaseData
@@ -45,6 +47,7 @@ class Log extends AbstractModel
         $this->level = $databaseData['level'];
         $this->date = new DateTime($databaseData['date']);
         $this->message = $databaseData['message'];
+        $this->backtrace = $databaseData['backtrace'];
     }
 
     /**
@@ -111,6 +114,18 @@ class Log extends AbstractModel
     public function setMessage(string $message): Log
     {
         $this->message = $message;
+
+        return $this;
+    }
+
+    public function getBacktrace(): string
+    {
+        return $this->backtrace;
+    }
+
+    public function setBacktrace(string $backtrace): Log
+    {
+        $this->backtrace = $backtrace;
 
         return $this;
     }

@@ -69,6 +69,7 @@ function databaseSetup()
             `destination` VARCHAR(100) NOT NULL,
             `level` ENUM('emergency','alert','critical','error','warning','notice','info','debug') NOT NULL,
             `date` DATETIME NOT NULL,
+            `backtrace` TEXT NOT NULL,
             `message` TEXT NOT NULL,
             PRIMARY KEY (`id`)
         ) COLLATE='utf8mb4_general_ci';",

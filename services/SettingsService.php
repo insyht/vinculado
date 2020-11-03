@@ -482,6 +482,7 @@ class SettingsService
             array_key_exists('message', $queryArgs['orderings']) ? '<strong>' : '',
             array_key_exists('message', $queryArgs['orderings']) ? '</strong>' : ''
         );
+        $html .= '<td>Backtrace</td>';
         $html .= '<td>Actions</td>';
         $html .= '</tr>';
 
@@ -492,6 +493,7 @@ class SettingsService
                     <td>%s</td>
                     <td>%s</td>
                     <td title="%s"%s>%s</td>
+                    <td>%s</td>
                     <td><a href="%s">Delete</a></td>
                     </tr>';
         foreach ($logs as $log) {
@@ -504,6 +506,7 @@ class SettingsService
                 $log->getMessage(),
                 $limitTextCss,
                 $log->getMessage(),
+                $log->getBacktrace(),
                 $this->buildUrl(['delete' => $log->getId()])
             );
         }
