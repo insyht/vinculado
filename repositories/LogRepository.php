@@ -37,7 +37,7 @@ class LogRepository extends AbstractRepository
         $logs = [];
 
         $variables = [];
-        $query = 'SELECT `id`, `origin`, `destination`, `level`, `date`, `message` FROM `vinculado_logs`';
+        $query = 'SELECT `id`, `origin`, `destination`, `level`, `date`, `message`, `backtrace` FROM `vinculado_logs`';
 
         if ($filters) {
             $query .= ' WHERE (';
@@ -115,17 +115,50 @@ class LogRepository extends AbstractRepository
         return $logs;
     }
 
-    public function delete(int $id)
+    public function delete(int $id): void
     {
         // todo Check if user has the rights to do this
         $queryTemplate = 'DELETE FROM `vinculado_logs` WHERE `id` = %d LIMIT 1;';
-       $query = sprintf($queryTemplate, $id);
-       $this->database->query($query);
+        $query = $this->database->prepare($queryTemplate, [$id]);
+        $this->database->query($query);
     }
 
-    public function truncate()
+    public function truncate(): void
     {
         // todo Check if user has the rights to do this
         $this->database->query('TRUNCATE `vinculado_logs`;');
+    }
+
+    public function create(string $origin, string $destination, string $level, string $message): void
+    {
+        $log = new Log();
+        $log->setOrigin($origin)
+            ->setDestination($destination)
+            ->setLevel($level)
+            ->setMessage($message);
+        $this->save($log);
+    }
+
+    public function save(Log $log): void
+    {
+        $backtrace = base64_encode(json_encode(debug_backtrace()));
+        $log->setBacktrace($backtrace);
+
+        $queryTemplate = '
+            INSERT INTO `vinculado_logs`
+                (`origin`, `destination`, `level`, `date`, `message`, `backtrace`)
+            VALUES
+                ("%s", "%s", "%s", NOW(), "%s", "%s");';
+        $query = $this->database->prepare(
+            $queryTemplate,
+            [
+                $log->getOrigin(),
+                $log->getDestination(),
+                $log->getLevel(),
+                $log->getMessage(),
+                $log->getBacktrace(),
+            ]
+        );
+        $this->database->query($query);
     }
 }

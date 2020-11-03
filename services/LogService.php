@@ -30,4 +30,9 @@ class LogService
     {
         return $this->logRepository->getLogs($filters, $search, $orderings, $limit);
     }
+
+    public static function log(Log $log): void
+    {
+        (new self())->logRepository->save($log);
+    }
 }
