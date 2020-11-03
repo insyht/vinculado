@@ -117,7 +117,9 @@ class LogRepository extends AbstractRepository
 
     public function delete(int $id): void
     {
-        // todo Check if user has the rights to do this
+        if (!is_admin()) {
+            return;
+        }
         $queryTemplate = 'DELETE FROM `vinculado_logs` WHERE `id` = %d LIMIT 1;';
         $query = $this->database->prepare($queryTemplate, [$id]);
         $this->database->query($query);
@@ -125,7 +127,9 @@ class LogRepository extends AbstractRepository
 
     public function truncate(): void
     {
-        // todo Check if user has the rights to do this
+        if (!is_admin()) {
+            return;
+        }
         $this->database->query('TRUNCATE `vinculado_logs`;');
     }
 
