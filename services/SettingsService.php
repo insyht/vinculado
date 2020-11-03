@@ -189,7 +189,7 @@ class SettingsService
 
     private function renderSettingMasterToken(array $settings): void
     {
-        $htmlTemplate = '<input '.
+        $htmlTemplate = '<input ' .
                             'type="text" ' .
                             'name="%s" ' .
                             'value="%s" ' .
@@ -284,34 +284,7 @@ class SettingsService
 
     private function renderSettingIncludeProducts(array $settings): void
     {
-        $products = $this->productService->getAllProducts();
-        $selectedProducts = get_option($settings['name']);
-        if (!is_array($selectedProducts)) {
-            $selectedProducts = [$selectedProducts];
-        }
-
-        $htmlTemplate = '<select name="%s[]" multiple>%s</select>';
-
-        $optionsHtml = '';
-        $optionHtmlTemplate = '<option value="%d"%s>%s</option>';
-        foreach ($products as $product) {
-            $optionsHtml .= sprintf(
-                $optionHtmlTemplate,
-                $product->get_id(),
-                in_array($product->get_id(), $selectedProducts) ? 'selected="selected"' : '',
-                $product->get_name()
-            );
-        }
-
-        if ($settings['description']) {
-            $htmlTemplate .= sprintf('<p class="description">%s</p>', $settings['description']);
-        }
-
-        echo sprintf(
-            $htmlTemplate,
-            $settings['name'],
-            $optionsHtml
-        );
+        $this->renderSettingExcludeProducts($settings);
     }
 
     private function renderSettingLogs(array $settings): void

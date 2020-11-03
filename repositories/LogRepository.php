@@ -25,12 +25,13 @@ class LogRepository extends AbstractRepository
      *      'level' => 'asc',
      *  ]
      *
-     * @param array     $filters
-     * @param string    $search
-     * @param array     $orderings
-     * @param int       $limit
+     * @param array  $filters
+     * @param string $search
+     * @param array  $orderings
+     * @param int    $limit
      *
      * @return \Vinculado\Models\Log[]
+     * @throws \Exception
      */
     public function getLogs(array $filters = [], $search = '', array $orderings = [], int $limit = 50): array
     {
@@ -39,6 +40,30 @@ class LogRepository extends AbstractRepository
         $variables = [];
         $query = 'SELECT `id`, `origin`, `destination`, `level`, `date`, `message`, `backtrace` FROM `vinculado_logs`';
 
+        $query = $this->addFiltersToQuery($query, $filters);
+        $query = $this->addSearchToQuery($query, $search);
+        $query = $this->addOrderingsToQuery($query, $orderings);
+
+        $query .= sprintf(' LIMIT %d ', (int)$limit);
+
+        $query .= ';';
+
+        if (count($variables) > 0) {
+            $query = $this->database->prepare($query, $variables);
+        }
+
+        $logRows = $this->database->get_results($query, ARRAY_A);
+        foreach ($logRows as $logRow) {
+            $log = new Log();
+            $log->read($logRow);
+            $logs[] = $log;
+        }
+
+        return $logs;
+    }
+
+    protected function addFiltersToQuery($query, array $filters): string
+    {
         if ($filters) {
             $query .= ' WHERE (';
             $addedFilters = 0;
@@ -66,6 +91,11 @@ class LogRepository extends AbstractRepository
             $query .= ' ) ';
         }
 
+        return $query;
+    }
+
+    protected function addSearchToQuery(string $query, string $search): string
+    {
         if ($search !== '') {
             if (stripos($query, 'WHERE') === false) {
                 $query .= ' WHERE (';
@@ -82,6 +112,11 @@ class LogRepository extends AbstractRepository
             $query .= ') ';
         }
 
+        return $query;
+    }
+
+    protected function addOrderingsToQuery(string $query, array $orderings): string
+    {
         if ($orderings) {
             $query .= ' ORDER BY ';
 
@@ -97,31 +132,16 @@ class LogRepository extends AbstractRepository
             $query .= ' ORDER BY `date` DESC ';
         }
 
-        $query .= sprintf(' LIMIT %d ', (int)$limit);
-
-        $query .= ';';
-
-        if (count($variables) > 0) {
-            $query = $this->database->prepare($query, $variables);
-        }
-
-        $logRows = $this->database->get_results($query, ARRAY_A);
-        foreach ($logRows as $logRow) {
-            $log = new Log();
-            $log->read($logRow);
-            $logs[] = $log;
-        }
-
-        return $logs;
+        return $query;
     }
 
-    public function delete(int $id): void
+    public function delete(int $identifier): void
     {
         if (!is_admin()) {
             return;
         }
         $queryTemplate = 'DELETE FROM `vinculado_logs` WHERE `id` = %d LIMIT 1;';
-        $query = $this->database->prepare($queryTemplate, [$id]);
+        $query = $this->database->prepare($queryTemplate, [$identifier]);
         $this->database->query($query);
     }
 

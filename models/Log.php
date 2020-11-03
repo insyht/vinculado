@@ -34,14 +34,9 @@ class Log extends AbstractModel
     /** @var string */
     private $backtrace;
 
-    /**
-     * @param array $databaseData
-     *
-     * @throws \Exception
-     */
     public function read(array $databaseData): void
     {
-        $this->id = $databaseData['id'];
+        $this->identifier = $databaseData['id'];
         $this->origin = $databaseData['origin'];
         $this->destination = $databaseData['destination'];
         $this->level = $databaseData['level'];

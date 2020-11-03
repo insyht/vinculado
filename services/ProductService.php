@@ -12,7 +12,7 @@ class ProductService
 {
     private $products = [];
 
-    public function getAllProducts(array $data): array
+    public function getAllProducts(): array
     {
         if (!$this->products) {
             $args = [

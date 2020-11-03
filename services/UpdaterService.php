@@ -4,6 +4,10 @@ namespace Vinculado\Services;
 
 use stdClass;
 
+/**
+ * Class UpdaterService
+ * @package Vinculado
+ */
 class UpdaterService
 {
     public const REQUEST_TYPE_GET = 'GET';
@@ -35,7 +39,7 @@ class UpdaterService
 
     public static function runUpdater(): void
     {
-        $updater = new self();
+        new self();
     }
 
     public function call(string $endpoint = '', string $type = self::REQUEST_TYPE_GET, array $data = []): array
@@ -43,6 +47,7 @@ class UpdaterService
         $requestUrl = sprintf('%s%s', $this->githubUrl, $endpoint);
         $headers = [
             sprintf('Accept: %s', $this->returnType),
+            "Cookie: XDEBUG_SESSION=PHPSTORM",
         ];
 
         $curl = curl_init();
@@ -55,18 +60,16 @@ class UpdaterService
         }
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         if ($this->debug) {
-            curl_setopt($curl, CURLOPT_HTTPHEADER, ["Cookie: XDEBUG_SESSION=PHPSTORM"]);
+            curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
         }
         $response = curl_exec($curl);
         $error = curl_error($curl);
         curl_close($curl);
 
-        $return = [
+        return [
             'response' => $response,
             'errors' => $error,
         ];
-
-        return $return;
     }
 
     public function updateCheck(object $transient): object
@@ -102,12 +105,11 @@ class UpdaterService
         return $this->extractVersionNumberFromReadme($readmeContents);
     }
 
-    protected function extractVersionNumberFromReadme(string $readmeContents)
+    protected function extractVersionNumberFromReadme(string $readmeContents): string
     {
         preg_match('/(Version: [0-9.]+)/', $readmeContents, $matches);
-        $version = str_replace('Version: ', '', $matches[1]);
 
-        return $version;
+        return str_replace('Version: ', '', $matches[1]);
     }
 
     protected function isUpdateNeeded(): bool
@@ -120,6 +122,13 @@ class UpdaterService
         return sprintf('%szipball', $this->githubUrl);
     }
 
+    /**
+     * @param bool   $false
+     * @param string $action
+     * @param object $pluginData
+     *
+     * @return false|object
+     */
     public function getPluginData(bool $false, string $action, object $pluginData)
     {
         if (!isset($pluginData->slug) || $pluginData->slug !== $this->slug) {

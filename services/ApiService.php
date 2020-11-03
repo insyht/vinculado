@@ -5,11 +5,15 @@ namespace Vinculado\Services;
 use Vinculado\Services\Api\Slave\ProductSlaveService;
 use WP_REST_Request;
 
+/**
+ * Class ApiService
+ * @package Vinculado
+ */
 class ApiService
 {
-    const ERROR_INVALID_MASTER_PARAMETERS = 'Error: Got invalid parameters from master request';
-    const ERROR_INVALID_SLAVE_RESPONSE_NO_BODY = 'Error: No body in slave response';
-    const ERROR_INVALID_SLAVE_RESPONSE_NO_RESPONSE = 'Error: No response from slave';
+    public const ERROR_INVALID_MASTER_PARAMETERS = 'Error: Got invalid parameters from master request';
+    public const ERROR_INVALID_SLAVE_RESPONSE_NO_BODY = 'Error: No body in slave response';
+    public const ERROR_INVALID_SLAVE_RESPONSE_NO_RESPONSE = 'Error: No response from slave';
 
     private $classMap = [
         'ProductSlaveService' => [
@@ -18,6 +22,11 @@ class ApiService
         ],
     ];
 
+    /**
+     * @param WP_REST_Request $request
+     *
+     * @return \WP_Error|\WP_HTTP_Response|\WP_REST_Response
+     */
     public function entrance(WP_REST_Request $request)
     {
         $parameters = json_decode(html_entity_decode(urldecode($request->get_body())), true);
@@ -35,15 +44,12 @@ class ApiService
     {
         $parameters = $request->get_json_params();
 
-        return is_array($parameters) &&
-             array_key_exists('data', $parameters) &&
+        return array_key_exists('data', $parameters) &&
              !empty($parameters['data']) &&
              array_key_exists('service', $parameters) &&
-             is_string($parameters['service']) &&
              $parameters['service'] !== '' &&
              array_key_exists($parameters['service'], $this->classMap) &&
              array_key_exists('endpoint', $parameters) &&
-             is_string($parameters['endpoint']) &&
              $parameters['endpoint'] !== '' &&
              in_array($parameters['endpoint'], $this->classMap[$parameters['service']]['methods']);
     }

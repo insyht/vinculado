@@ -10,12 +10,12 @@ use Vinculado\Repositories\AbstractRepository;
  */
 abstract class AbstractModel
 {
-    protected $id;
+    protected $identifier;
 
     abstract protected function getRepository(): AbstractRepository;
 
     public function getId(): ?int
     {
-        return $this->id;
+        return $this->identifier;
     }
 }

@@ -2,6 +2,10 @@
 
 namespace Vinculado\Services\Api\Slave;
 
+/**
+ * Class Slave
+ * @package Vinculado
+ */
 class Slave
 {
     protected $apiKey;

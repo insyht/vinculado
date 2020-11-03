@@ -49,49 +49,67 @@ abstract class AbstractApiMasterService implements ApiMasterServiceInterface
         ];
 
         $responses = [];
-        $urlTemplate = '%s/wp-json/iws-vinculado/v1?apiKey=%s';
         $errors = [];
         foreach ($slaves as $slave) {
-            $fullUrl = sprintf($urlTemplate, $slave->getUrl(), $slave->getApiKey());
-            $slaveResponse = wp_remote_post($fullUrl, ['body' => json_encode($data)]);
-            if (!array_key_exists('body', $slaveResponse)) {
-                $log = new Log();
-                $log->setOrigin($this->getBaseUrl())
-                    ->setDestination($slave->getUrl())
-                    ->setLevel(Log::LEVEL_ERROR)
-                    ->setMessage(ApiService::ERROR_INVALID_SLAVE_RESPONSE_NO_BODY);
-                $errors[] = $log;
-                continue;
+            $slaveResponse = $this->sendRequestToSlave($slave, $data);
+            if (is_array($slaveResponse)) {
+                $responses[$slave->getApiKey()] = $slaveResponse;
+            } elseif (is_object($slaveResponse) && get_class($slaveResponse) === Log::class) {
+                $errors[] = $slaveResponse;
             }
-            $processedResponse = $this->processResponse($slaveResponse);
-            if (empty($processedResponse)) {
-                $log = new Log();
-                $log->setOrigin($this->getBaseUrl())
-                    ->setDestination($slave->getUrl())
-                    ->setLevel(Log::LEVEL_ERROR)
-                    ->setMessage(ApiService::ERROR_INVALID_SLAVE_RESPONSE_NO_RESPONSE);
-                $errors[] = $log;
-                continue;
-            }
-            if (
-                array_key_exists('data', $processedResponse) &&
-                array_key_exists('status', $processedResponse['data']) &&
-                $processedResponse['data']['status'] === 401
-            ) {
-                $log = new Log();
-                $log->setOrigin($this->getBaseUrl())
-                    ->setDestination($slave->getUrl())
-                    ->setLevel(Log::LEVEL_ERROR)
-                    ->setMessage($processedResponse['message']);
-                $errors[] = $log;
-                continue;
-            }
-            $responses[$slave->getApiKey()] = $processedResponse;
         }
 
         $response->set_data(array_merge($responses, ['errors' => $errors]));
 
         return $response;
+    }
+
+    /**
+     * @param Slave $slave
+     * @param array $data
+     *
+     * @return Log|array Returns an array if succesful, else returns a Log object containing the error
+     */
+    protected function sendRequestToSlave(Slave $slave, array $data)
+    {
+        $urlTemplate = '%s/wp-json/iws-vinculado/v1?apiKey=%s';
+
+        $fullUrl = sprintf($urlTemplate, $slave->getUrl(), $slave->getApiKey());
+        $slaveResponse = wp_remote_post($fullUrl, ['body' => json_encode($data)]);
+        if (!array_key_exists('body', $slaveResponse)) {
+            $log = new Log();
+            $log->setOrigin($this->getBaseUrl())
+                ->setDestination($slave->getUrl())
+                ->setLevel(Log::LEVEL_ERROR)
+                ->setMessage(ApiService::ERROR_INVALID_SLAVE_RESPONSE_NO_BODY);
+
+            return $log;
+        }
+        $processedResponse = $this->processResponse($slaveResponse);
+        if (empty($processedResponse)) {
+            $log = new Log();
+            $log->setOrigin($this->getBaseUrl())
+                ->setDestination($slave->getUrl())
+                ->setLevel(Log::LEVEL_ERROR)
+                ->setMessage(ApiService::ERROR_INVALID_SLAVE_RESPONSE_NO_RESPONSE);
+
+            return $log;
+        }
+        if (
+            array_key_exists('data', $processedResponse) &&
+            array_key_exists('status', $processedResponse['data']) &&
+            $processedResponse['data']['status'] === 401
+        ) {
+            $log = new Log();
+            $log->setOrigin($this->getBaseUrl())
+                ->setDestination($slave->getUrl())
+                ->setLevel(Log::LEVEL_ERROR)
+                ->setMessage($processedResponse['message']);
+
+            return $log;
+        }
+
+        return $processedResponse;
     }
 
     public function processResponse(array $response): array
@@ -133,7 +151,6 @@ abstract class AbstractApiMasterService implements ApiMasterServiceInterface
     {
         $slaves = [];
 
-        $slaveApiKey = [];
         $amountOfSlaves = (int) get_option(SettingsService::SETTING_SLAVES_COUNT_SLUG, 0);
         if ($amountOfSlaves !== false) {
             for ($iterator = 1; $iterator <= $amountOfSlaves; $iterator++) {

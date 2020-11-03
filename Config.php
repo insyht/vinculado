@@ -38,14 +38,16 @@ class Config
                         'Master token' => [
                             'name' => SettingsService::SETTING_MASTER_TOKEN,
                             'type' => 'string',
-                            'description' => 'API token of the master shop. Leave empty if this shop is the master shop.',
+                            'description' => 'API token of the master shop.'.
+                                             'Leave empty if this shop is the master shop.',
                             'default' => '',
                             'callback' => 'renderSettingMasterToken',
                         ],
                         'Amount of slaves' => [
                             'name' => SettingsService::SETTING_SLAVES_COUNT_SLUG,
                             'type' => 'integer',
-                            'description' => 'How many slaves does this master have? If this is not a master, set it to 0',
+                            'description' => 'How many slaves does this master have?'.
+                                             'If this is not a master, set it to 0',
                             'default' => 0,
                             'callback' => 'renderSettingSlavesCount',
                         ],
@@ -69,7 +71,8 @@ class Config
                         'Exclude products' => [
                             'name' => SettingsService::SETTING_EXCLUDE_PRODUCTS,
                             'type' => 'array',
-                            'description' => 'Exclude specific products from sync. Hold the CTRL key to select multiple',
+                            'description' => 'Exclude specific products from sync.'.
+                                             'Hold the CTRL key to select multiple',
                             'default' => [],
                             'callback' => 'renderSettingExcludeProducts',
                         ],
