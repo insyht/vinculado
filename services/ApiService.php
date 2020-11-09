@@ -18,7 +18,7 @@ class ApiService
     private $classMap = [
         'ProductSlaveService' => [
             'fqn' => ProductSlaveService::class,
-            'methods' => ['updatePrice', 'updateProduct'],
+            'methods' => ['updateProduct'],
         ],
     ];
 

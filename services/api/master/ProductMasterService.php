@@ -13,28 +13,6 @@ use WP_REST_Request;
  */
 class ProductMasterService extends AbstractApiMasterService
 {
-    public function updatePrice(WC_Product $product): bool
-    {
-        $request = new WP_REST_Request();
-        $attributes = [
-            'id' => $product->get_id(),
-            'price' => $product->get_price(),
-        ];
-        $request->set_attributes($attributes);
-        $response = $this->request($request);
-        $errors = $this->getErrors($response);
-
-        if (!empty($errors)) {
-            foreach ($errors as $error) {
-                LogService::log($error);
-            }
-
-            return false;
-        }
-
-        return true;
-    }
-
     public function updateProduct(WC_Product $wcProduct): bool
     {
         $syncProduct = SyncProduct::fromWCProduct($wcProduct);
