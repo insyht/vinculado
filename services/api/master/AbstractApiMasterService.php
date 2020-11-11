@@ -21,6 +21,8 @@ use WP_REST_Response;
  */
 abstract class AbstractApiMasterService implements ApiMasterServiceInterface
 {
+    public const DESTINATION_ALL_SLAVES = 'allSlaves';
+
     public function request(WP_REST_Request $request): WP_REST_Response
     {
         $requestServiceFQN = get_class($this);
@@ -34,7 +36,7 @@ abstract class AbstractApiMasterService implements ApiMasterServiceInterface
         if (!$requestServiceFQN || !$requestService || !$requestMethod) {
             $log = new Log();
             $log->setOrigin($this->getBaseUrl())
-                ->setDestination($this->getBaseUrl())
+                ->setDestination(self::DESTINATION_ALL_SLAVES)
                 ->setLevel(Log::LEVEL_ERROR)
                 ->setMessage(ApiService::ERROR_INVALID_MASTER_PARAMETERS);
             $response->set_data(['errors' => [$log]]);
