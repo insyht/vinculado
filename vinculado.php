@@ -1,5 +1,4 @@
 <?php
-
 /**
 * Plugin Name: Vinculado Product Sync
 * Plugin URI: https://insyht.nl/vinculado
@@ -21,13 +20,12 @@
 require_once 'safetychecks.php';
 require_once 'autoload.php';
 
-use Vinculado\Helpers\SyncHelper;
 use Vinculado\Models\Log;
+use Vinculado\Services\Api\Master\AbstractApiMasterService;
 use Vinculado\Services\Api\Master\ProductMasterService;
 use Vinculado\Services\ApiService;
 use Vinculado\Services\LogService;
 use Vinculado\Services\SettingsService;
-
 
 $settingsService = new SettingsService();
 $apiService = new ApiService();
@@ -62,15 +60,11 @@ add_action('woocommerce_update_product', 'vinculadoSyncUpdatedProduct', 10, 1);
 
 function vinculadoSyncUpdatedProduct(int $productId)
 {
-    if (!SyncHelper::shopIsMaster()) {
-        return;
-    }
-
     $product = wc_get_product($productId);
 
     $log = new Log();
     $log->setOrigin(get_site_url())
-        ->setDestination(\Vinculado\Services\Api\Master\AbstractApiMasterService::DESTINATION_ALL_SLAVES)
+        ->setDestination(AbstractApiMasterService::DESTINATION_ALL_SLAVES)
         ->setLevel(Log::LEVEL_INFO)
         ->setMessage(sprintf('Syncing product id %d because it\'s been updated', $productId));
     LogService::log($log);
@@ -81,7 +75,7 @@ function vinculadoSyncUpdatedProduct(int $productId)
     } catch (Throwable $t) {
         $log = new Log();
         $log->setOrigin(get_site_url())
-            ->setDestination(\Vinculado\Services\Api\Master\AbstractApiMasterService::DESTINATION_ALL_SLAVES)
+            ->setDestination(AbstractApiMasterService::DESTINATION_ALL_SLAVES)
             ->setLevel(Log::LEVEL_ERROR)
             ->setMessage(sprintf('Syncing product id %d failed: %s', $productId, $t->getMessage()));
         LogService::log($log);

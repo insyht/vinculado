@@ -2,6 +2,7 @@
 
 namespace Vinculado\Services;
 
+use WC_Product;
 use WP_Query;
 
 /**
@@ -30,5 +31,25 @@ class ProductService
         }
 
         return $this->products;
+    }
+
+    public static function isProductAllowedToSync(WC_Product $product)
+    {
+        $productId = $product->get_id();
+        $excludedProductIds = get_option(SettingsService::SETTING_EXCLUDE_PRODUCTS);
+        $includedProductIds = get_option(SettingsService::SETTING_INCLUDE_PRODUCTS);
+
+        if (!is_array($excludedProductIds)) {
+            $excludedProductIds = [];
+        }
+        if (!is_array($includedProductIds)) {
+            $includedProductIds = [];
+        }
+
+        if (in_array($productId, $includedProductIds) || !in_array($productId, $excludedProductIds)) {
+            return true;
+        }
+
+        return false;
     }
 }
