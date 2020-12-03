@@ -13,12 +13,14 @@ use Vinculado\Repositories\LogRepository;
  */
 class SettingsService
 {
-    public const SETTING_MASTER_TOKEN      = 'iws_vinculado_master_token';
-    public const SETTING_SLAVES_COUNT_SLUG = 'iws_vinculado_slaves_count';
-    public const SETTING_API_TOKEN         = 'iws_vinculado_api_token';
-    public const SETTING_EXCLUDE_PRODUCTS  = 'iws_vinculado_exclude_products';
-    public const SETTING_INCLUDE_PRODUCTS  = 'iws_vinculado_include_products';
-    public const DEFAULT_TAB_SLUG          = 'iws_vinculado_general_settings';
+    public const SETTING_MASTER_TOKEN       = 'iws_vinculado_master_token';
+    public const SETTING_SLAVES_COUNT_SLUG  = 'iws_vinculado_slaves_count';
+    public const SETTING_API_TOKEN          = 'iws_vinculado_api_token';
+    public const SETTING_EXCLUDE_PRODUCTS   = 'iws_vinculado_exclude_products';
+    public const SETTING_INCLUDE_PRODUCTS   = 'iws_vinculado_include_products';
+    public const SETTING_EXCLUDE_CATEGORIES = 'iws_vinculado_exclude_categories';
+    public const SETTING_INCLUDE_CATEGORIES = 'iws_vinculado_include_categories';
+    public const DEFAULT_TAB_SLUG           = 'iws_vinculado_general_settings';
 
     private $pageName = 'Vinculado';
     private $slugName = 'vinculado';
@@ -161,10 +163,10 @@ class SettingsService
     private function renderDefaultSettingsPage(array $settings): void
     {
         $formUrl = esc_url(add_query_arg('tab', $this->currentTab, admin_url('options.php')));
-
         echo '<form action="' . $formUrl . '" method="post">';
         settings_fields($this->pageName);
         do_settings_sections($this->slugName);
+
         if ($settings['showSaveButton']) {
             submit_button(__('Save Settings', 'textdomain'));
         }
@@ -285,6 +287,93 @@ class SettingsService
     private function renderSettingIncludeProducts(array $settings): void
     {
         $this->renderSettingExcludeProducts($settings);
+    }
+
+    private function renderSettingIncludeCategories(array $settings): void
+    {
+        $this->renderSettingExcludeCategories($settings);
+    }
+
+    private function getHierarchicalCategories(int $categoryId = 0): array
+    {
+        $array = [];
+        $args = [
+            'taxonomy' => "product_cat",
+            'hide_empty' => false,
+            'parent' => $categoryId,
+        ];
+        $next = get_categories($args);
+
+        if ($next) {
+            foreach ($next as $cat) {
+                $id = $cat->term_id;
+                $catArray = [
+                  'children' => [],
+                  'name' => $cat->name,
+                  'id' => $id,
+                ];
+                $catArray['children'] = $this->getHierarchicalCategories($id);
+                $array[] = $catArray;
+            }
+        }
+
+        return $array;
+    }
+
+    private function renderSettingExcludeCategories(array $settings): void
+    {
+        $categories = $this->getHierarchicalCategories();
+        $selectedCategories = get_option($settings['name']);
+        if (!is_array($selectedCategories)) {
+            $selectedCategories = [$selectedCategories];
+        }
+
+        $htmlTemplate = '<select style="height: 15em;" name="%s[]" multiple>%s</select>';
+
+        $optionsHtml = '';
+        foreach ($categories as $category) {
+            $optionsHtml = $this->getCategoryOptionHtml($optionsHtml, 0, $category, $selectedCategories);
+        }
+
+        if ($settings['description']) {
+            $htmlTemplate .= sprintf('<p class="description">%s</p>', $settings['description']);
+        }
+
+        echo sprintf(
+            $htmlTemplate,
+            $settings['name'],
+            $optionsHtml
+        );
+    }
+
+    private function getCategoryOptionHtml(
+        string $currentHtml,
+        int $depth,
+        array $category,
+        array $selectedCategories
+    ): string {
+        $optionHtmlTemplate = '<option value="%d"%s>%s%s</option>';
+
+        $currentHtml .= sprintf(
+            $optionHtmlTemplate,
+            $category['id'],
+            in_array($category['id'], $selectedCategories) ? 'selected="selected"' : '',
+            str_repeat('&#160;&#160;&#160;&#160;', $depth) . ' ',
+            $category['name']
+        );
+        if (!empty($category['children'])) {
+            foreach ($category['children'] as $childCategory) {
+                $childDepth = $depth + 1;
+                $currentHtml = $this->getCategoryOptionHtml(
+                    $currentHtml,
+                    $childDepth,
+                    $childCategory,
+                    $selectedCategories
+                );
+            }
+        }
+
+        return $currentHtml;
     }
 
     private function renderSettingLogs(array $settings): void

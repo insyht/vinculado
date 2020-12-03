@@ -55,7 +55,8 @@ class Config
                 ],
                 'iws_vinculado_product_settings' => [
                     'name' => 'Product settings',
-                    'description' => 'Include/exclude products from the sync. By default all products are included.',
+                    'description' => 'Include/exclude products from the sync. By default all products are included. '.
+                                     'These settings are in order of precedence',
                     'showSaveButton' => true,
                     'hasForm' => true,
                     'callback' => 'renderDefaultSettingsPage',
@@ -71,10 +72,26 @@ class Config
                         'Exclude products' => [
                             'name' => SettingsService::SETTING_EXCLUDE_PRODUCTS,
                             'type' => 'array',
-                            'description' => 'Exclude specific products from sync.'.
+                            'description' => 'Exclude specific products from sync.' .
                                              'Hold the CTRL key to select multiple',
                             'default' => [],
                             'callback' => 'renderSettingExcludeProducts',
+                        ],
+                        'Include categories' => [
+                            'name' => SettingsService::SETTING_INCLUDE_CATEGORIES,
+                            'type' => 'array',
+                            'description' => 'Include specific categories. This overrides all exclude rules. ' .
+                                             'Hold the CTRL key to select multiple',
+                            'default' => [],
+                            'callback' => 'renderSettingIncludeCategories',
+                        ],
+                        'Exclude categories' => [
+                            'name' => SettingsService::SETTING_EXCLUDE_CATEGORIES,
+                            'type' => 'array',
+                            'description' => 'Exclude specific categories from sync.' .
+                                             'Hold the CTRL key to select multiple',
+                            'default' => [],
+                            'callback' => 'renderSettingExcludeCategories',
                         ],
                     ],
                 ],
