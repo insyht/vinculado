@@ -25,6 +25,7 @@ use Vinculado\Services\Api\Master\AbstractApiMasterService;
 use Vinculado\Services\Api\Master\ProductMasterService;
 use Vinculado\Services\ApiService;
 use Vinculado\Services\LogService;
+use Vinculado\Services\ProductService;
 use Vinculado\Services\SettingsService;
 
 $settingsService = new SettingsService();
@@ -57,6 +58,7 @@ add_action(
 );
 
 add_action('woocommerce_update_product', 'vinculadoSyncUpdatedProduct', 10, 1);
+add_action('post_submitbox_misc_actions', 'vinculadoSyncButton', 10, 1);
 
 function vinculadoSyncUpdatedProduct(int $productId)
 {
@@ -80,6 +82,55 @@ function vinculadoSyncUpdatedProduct(int $productId)
             ->setMessage(sprintf('Syncing product id %d failed: %s', $productId, $t->getMessage()));
         LogService::log($log);
     }
+}
+
+function vinculadoSyncButton(WP_Post $post)
+{
+    $htmlTemplate = '<div style="%s">' .
+            '<button class="%s" %s %s title="%s">' .
+            'Sync product' .
+            '</button>' .
+            '</div>';
+
+    $buttonEnabled = true;
+    $buttonDisabledReasons = [];
+
+    if (!$post) {
+        $buttonEnabled = false;
+        $buttonDisabledReasons[] = 'This is not a product page';
+    }
+
+    if (!\Vinculado\Helpers\SyncHelper::shopIsMaster()) {
+        $buttonEnabled = false;
+        $buttonDisabledReasons[] = 'This is not the master shop';
+    }
+
+    $wcProduct = wc_get_product($post->ID);
+    if (!ProductService::isProductAllowedToSync($wcProduct)) {
+        $buttonEnabled = false;
+        $buttonDisabledReasons[] = 'This product is in a sync exclude list';
+    }
+
+    if ($buttonEnabled) {
+        $cssStyle = 'margin: 10px; text-align: right;';
+        $cssClasses = 'button button-primary button-large';
+        $onClick = sprintf('onclick="vinculadoSyncProduct(%d);"', $post->ID);
+    } else {
+        $cssStyle = 'margin: 10px; text-align: right;';
+        $cssClasses = 'button button-primary button-large';
+        $onClick = '';
+    }
+
+    echo sprintf(
+        $htmlTemplate,
+        $cssStyle,
+        $cssClasses,
+        $buttonEnabled ? '' : 'disabled="disabled"',
+        $onClick,
+        $buttonEnabled
+            ? 'Sync this product to all slaves'
+            : sprintf('This sync is disabled because: %s', implode('; ', $buttonDisabledReasons))
+    );
 }
 
 register_activation_hook(__FILE__, 'databaseSetup');
