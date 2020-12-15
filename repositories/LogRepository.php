@@ -74,7 +74,7 @@ class LogRepository extends AbstractRepository
                             $query .= ' OR ';
                         }
 
-                        $query .= sprintf(' `%s` = %%s ', $column);
+                        $query .= sprintf(' `%s` = "%s" ', $column, $value);
                         $variables[] = $value;
                         $addedFilters++;
                     }
@@ -83,7 +83,7 @@ class LogRepository extends AbstractRepository
                         $query .= ' OR ';
                     }
 
-                    $query .= sprintf(' `%s` = %%s ', $column);
+                    $query .= sprintf(' `%s` = "%s" ', $column, $values);
                     $variables[] = $values;
                     $addedFilters++;
                 }
